@@ -1,5 +1,5 @@
-# 1 初级（ubuntu20.04）
-## 安装git
+* 1 初级（ubuntu20.04）
+    * 安装git
 ### 使用APT安装
     sudo apt update         // 更新apt
     sudo apt install git    // 安装git
