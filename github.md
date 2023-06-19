@@ -1,5 +1,5 @@
 # 1 初级（ubuntu20.04）
-## 安装git
+## 1.1 安装git
 ### 使用APT安装
     sudo apt update         // 更新apt
     sudo apt install git    // 安装git
@@ -16,7 +16,7 @@
 ### 参考
     [如何在 Ubuntu 20.04 上安装 Git](https://zhuanlan.zhihu.com/p/137578868)
 
-## git设置HTTP(S)代理，如果能正常使用可以不管
+## 1.2 git设置HTTP(S)代理，如果能正常使用可以不管
 ### 设置代理
     git config --global http.proxy 'socks5://127.0.0.1:1080' 
     git config --global https.proxy 'socks5://127.0.0.1:1080'
@@ -26,7 +26,7 @@
 ### 取消代理
     git config --global --unset http.proxy
     git config --global --unset https.proxy
-## 将本地项目上传到github
+## 1.3 将本地项目上传到github
     
 ### 
 
