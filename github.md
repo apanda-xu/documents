@@ -14,7 +14,8 @@
         name = Your Name
         email = youremail@yourdomain.com
 ### 参考
-    [如何在 Ubuntu 20.04 上安装 Git](https://zhuanlan.zhihu.com/p/137578868)
+#### [如何在 Ubuntu 20.04 上安装 Git](https://zhuanlan.zhihu.com/p/137578868)
+<br>
 
 ## 1.2 git设置HTTP(S)代理，如果能正常使用可以不管
 ### 设置代理
@@ -26,8 +27,15 @@
 ### 取消代理
     git config --global --unset http.proxy
     git config --global --unset https.proxy
+### 参考
+#### [git设置、查看、取消代理](https://www.cnblogs.com/yongy1030/p/11699086.html)
+<br>
+
 ## 1.3 将本地项目上传到github
     
 ### 
+
+<br>
+<br>
 
 # 2 进阶
