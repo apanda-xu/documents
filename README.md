@@ -3,4 +3,4 @@
 |:---|:---:|
 |git|[记录](./git.md)|
 |git commands|[文档](./git_commands.md)|
-|markdown|[文档](https://guo365.github.io/study/Markdown.html) or [pdf](./markdown.pdf)|
+|markdown|[文档](https://guo365.github.io/study/Markdown.html)|
