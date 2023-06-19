@@ -30,8 +30,29 @@
 #### [git设置、查看、取消代理](https://www.cnblogs.com/yongy1030/p/11699086.html)
 
 
-## 1.3 将本地项目上传到github
+## 1.3 生成SSH密钥（一对公钥和私钥），并将公钥上传到github服务器
+### 本地生成SSH密钥
+    先检查~/.ssh目录下有无 id_rsa（私钥）和id_rsa.pub（公钥）
+    若已存在，则不需要生成，防止覆盖；若无，则使用下面的命令生成：
+    ssh-keygen -t rsa       // 在~/.ssh目录下生成密钥
+### 将公钥id_rsa.pub内容拷贝到github服务器
+![ssh](./ssh.png)
 
+## 1.4 将本地项目上传到github
+### 首次上传
+    cd {workspace}                  // 进入项目所在的文件夹
+    git init                        // 初始化项目文件夹作为本地仓库
+    git checkout -b main            // 新建main分支，并切换到main分支
+    git remote add origin xxx       // 连接远程仓库可以使用SSH协议（推荐）：git@github.com:apanda-xu/documents.git,也可以使用HTTPS协议（有墙，容易出现连接不上的情况）：https://github.com/apanda-xu/documents.git
+    git pull origin main            // push之前先从远程仓库拉取
+    git add .                       // 将变化的文件（修改、新建、删除）加入暂存区
+    git commit -m "commit info"     // 提交变更
+    git push -u origin main         // push到远端仓库
+### 后续上传 （由于第一次push使用了-u参数，所以后续上传可以简单push）
+    git pull                     
+    git push
+
+    
 
 
 
