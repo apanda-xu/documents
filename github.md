@@ -56,7 +56,9 @@
     git push
 <br>
 
-    
+## 1.5 [解决Github连接慢或者无法连接(通过修改hosts文件解决)](https://cloud.tencent.com/developer/article/2023920)
+## 1.6 常用git命令
+
 
 
 
