@@ -38,7 +38,7 @@
     若已存在，则不需要生成，防止覆盖；若无，则使用下面的命令生成：
     ssh-keygen -t rsa       // 在~/.ssh目录下生成密钥
 ### 将公钥id_rsa.pub内容拷贝到github服务器
-![ssh](./ssh.png)
+![ssh](./misc/ssh.png)
 <br>
 
 ## 1.4 将本地项目上传到github
