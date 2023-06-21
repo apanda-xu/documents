@@ -3,7 +3,7 @@
 |:---|:---:|
 |git|[文档](./git.md)|
 |git cmds|[文档](./git_commands.md)|
-|markdown|[文档](https://htmlpreview.github.io/?https://github.com/apanda-xu/documents/blob/main/markdown.html)|
+|markdown|[文档](./markdown.md)|
 |linux|[文档](./linux.md)|
 |wsl2|[文档](./wsl2.md)|
 |c/c++|[文档](./c++.md)|
