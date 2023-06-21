@@ -2,7 +2,7 @@
 ## 1.1 std::unique_lock和std::unique_guard的用法和区别
 
 ## 1.2 睡眠
-```
+```c++
 #include<thread>
 #include<chrono>
 
