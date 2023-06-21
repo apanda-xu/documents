@@ -1,5 +1,6 @@
 # 1 基础知识 
-## 1.1 std::unique_lock和std::unique_guard的用法和区别
+## 1.1 std::unique_lock，用于管理互斥量（std::mutex）的RAII类，提供了更多的灵活性和功能，用法如下：
+    构造函数：std::unique_lock<std::mutex> lock(mtx); // 创建std::unique_lock对象，并立即锁定互斥量mtx。等同于mtx.lock()。
 
 ## 1.2 睡眠
 ```c++
