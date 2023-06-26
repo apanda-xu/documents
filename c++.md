@@ -1,5 +1,4 @@
 - [1 基础知识](#1-基础知识)
-  - [1.1 std::unique\_lock，用于管理互斥量（std::mutex）的RAII类，提供了更多的灵活性和功能，用法如下：](#11-stdunique_lock用于管理互斥量stdmutex的raii类提供了更多的灵活性和功能用法如下)
   - [1.2 睡眠](#12-睡眠)
   - [1.3 getopt函数](#13-getopt函数)
   - [1.4 ".h"头文件的作用](#14-h头文件的作用)
@@ -9,25 +8,24 @@
   - [1.7 懒汉模式（需要时创建并初始化对象）](#17-懒汉模式需要时创建并初始化对象)
     - [1. 使用加锁方式实现线程安全懒汉模式：](#1-使用加锁方式实现线程安全懒汉模式)
     - [2. 使用双重检查锁定方式实现线程安全懒汉模式：](#2-使用双重检查锁定方式实现线程安全懒汉模式)
-  - [1.8 信号量实现（C语言）](#18-信号量实现c语言)
+  - [1.8 信号量（C）](#18-信号量c)
     - [1. 示例](#1-示例)
     - [2. \<semaphore.h\>用法](#2-semaphoreh用法)
-  - [1.9 互斥锁实现（C语言）](#19-互斥锁实现c语言)
+  - [1.9 互斥锁（C）](#19-互斥锁c)
     - [1. 示例](#1-示例-1)
     - [2. \<pthread.h\>用法](#2-pthreadh用法)
-  - [1.10 条件变量实现（C语言）](#110-条件变量实现c语言)
+  - [1.10 条件变量（C）](#110-条件变量c)
     - [1. 示例](#1-示例-2)
-    - [2.](#2)
+    - [2. \<pthread.h\>用法](#2-pthreadh用法-1)
   - [1.11 \<exception\>用法](#111-exception用法)
     - [1. 介绍](#1-介绍)
     - [2. 示例](#2-示例)
+  - [1.11 std::unique\_lock](#111-stdunique_lock)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
   - [2.2 多路复用](#22-多路复用)
-# 1 基础知识 
-## 1.1 std::unique_lock，用于管理互斥量（std::mutex）的RAII类，提供了更多的灵活性和功能，用法如下：
-    构造函数：std::unique_lock<std::mutex> lock(mtx); // 创建std::unique_lock对象，并立即锁定互斥量mtx。等同于mtx.lock()。
 
+# 1 基础知识 
 ## 1.2 睡眠
 ```c++
 #include<thread>
@@ -165,7 +163,7 @@ std::mutex Singleton::mtx;
 ```
     在上述示例中，通过双重检查锁定的方式实现线程安全的懒汉模式。在 getInstance 方法中，首先检查实例是否为 nullptr，如果是，则加锁并再次检查，以确保只有一个线程创建实例。这样可以减少加锁的频率，提高性能。
 
-## 1.8 信号量实现（C语言）
+## 1.8 信号量（C）
 ### 1. 示例
 ```c
 #include<semaphore.h>
@@ -241,7 +239,7 @@ int sem_post(sem_t *sem);
     需要注意的是，sem_post函数也是原子操作，即在释放信号量的过程中，不会被其他线程或者进程打断。如果释放信号量失败，则会返回-1，并设置相应的错误码。
     这些函数是使用信号量的基本操作。在使用时，需要先通过sem_init函数初始化一个信号量，然后在需要同步的代码段中使用sem_wait和sem_post函数来获取和释放信号量。最后，使用sem_destroy函数来销毁信号量。
 
-## 1.9 互斥锁实现（C语言）
+## 1.9 互斥锁（C）
 ### 1. 示例
 ```c++
 #include<pthread.h>
@@ -303,9 +301,10 @@ pthread_mutex_unlock(&m_mutex);
 // 5. 最后，在程序结束时，需要使用pthread_mutex_destroy函数销毁互斥锁，这样可以释放互斥锁占用的资源：
 pthread_mutex_destroy(&m_mutex);
 ```
-## 1.10 条件变量实现（C语言）
+## 1.10 条件变量（C）
 ### 1. 示例
 ```c++
+#include<pthread.h>
 class cond
 {
 public:
@@ -356,7 +355,47 @@ private:
     pthread_cond_t m_cond;
 }
 ```
-### 2. 
+### 2. <pthread.h>用法
+```c++
+// 1. 初始化条件变量对象。
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)：
+```
+    参数：
+    cond：指向条件变量对象的指针。
+    attr：指向条件变量属性对象的指针，一般可以传入NULL。
+    返回值：成功返回0，失败返回错误码。
+```c++
+// 2. 销毁条件变量对象。
+int pthread_cond_destroy(pthread_cond_t *cond)：
+```
+    参数：
+    cond：指向条件变量对象的指针。
+    返回值：成功返回0，失败返回错误码。
+ 
+```c++
+// 3. 等待条件变量满足，并在等待期间自动释放关联的互斥锁。
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)：
+```
+    参数：
+    cond：指向条件变量对象的指针。
+    mutex：指向互斥锁对象的指针。
+    返回值：成功返回0，失败返回错误码。
+
+```c++
+// 4. 发送信号，唤醒一个正在等待条件变量的线程。
+int pthread_cond_signal(pthread_cond_t *cond)：
+```
+    参数：
+    cond：指向条件变量对象的指针。
+    返回值：成功返回0，失败返回错误码。
+
+```c++
+// 5. 发送广播，唤醒所有正在等待条件变量的线程。
+int pthread_cond_broadcast(pthread_cond_t *cond)：
+```
+    参数：
+    cond：指向条件变量对象的指针。
+    返回值：成功返回0，失败返回错误码。
 ## 1.11 \<exception>用法
 ### 1. 介绍
     <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
@@ -394,6 +433,10 @@ int main() {
     return 0;
 }
 ```
+
+
+## 1.11 std::unique_lock
+    构造函数：std::unique_lock<std::mutex> lock(mtx); // 创建std::unique_lock对象，并立即锁定互斥量mtx。等同于mtx.lock()。
 
 # 2 功能模块
 ## 2.1 线程池
