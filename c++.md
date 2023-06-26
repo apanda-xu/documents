@@ -3,7 +3,7 @@
     - [1. 介绍](#1-介绍)
     - [2. 示例](#2-示例)
   - [1.2 sleep](#12-sleep)
-  - [1.3 getopt函数](#13-getopt函数)
+  - [1.3 getopt](#13-getopt)
   - [1.4 ".h"头文件的作用](#14-h头文件的作用)
   - [1.5 静态局部变量初始化的线程安全性](#15-静态局部变量初始化的线程安全性)
   - [1.6 饿汉模式 （程序启动时创建并初始化对象）](#16-饿汉模式-程序启动时创建并初始化对象)
@@ -88,7 +88,7 @@ std::this_thread::sleep_for(std::chrono::seconds(1));           // 秒
 std::this_thread::sleep_for(std::chrono::milliseconds(100));    // 毫秒
 std::this_thread::sleep_for(std::chrono::microseconds(500));    // 微秒
 ```
-## 1.3 getopt函数
+## 1.3 getopt
 
 ## 1.4 ".h"头文件的作用
     在C++中，.h 文件通常用于头文件（Header File），它们具有以下作用：
