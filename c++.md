@@ -15,15 +15,29 @@
     - [1. 示例](#1-示例-1)
     - [2. \<pthread.h\>用法](#2-pthreadh用法)
   - [1.10 条件变量（C）](#110-条件变量c)
-    - [1. 示例](#1-示例-2)
-    - [2. \<pthread.h\>用法](#2-pthreadh用法-1)
+    - [1. 示例1](#1-示例1)
+    - [2. 示例2](#2-示例2)
+    - [3. \<pthread.h\>用法](#3-pthreadh用法)
   - [1.11 \<exception\>用法](#111-exception用法)
     - [1. 介绍](#1-介绍)
     - [2. 示例](#2-示例)
-  - [1.11 std::unique\_lock](#111-stdunique_lock)
+  - [1.11 互斥锁（C++）](#111-互斥锁c)
+    - [1. std::unique\_lock](#1-stdunique_lock)
+      - [用法](#用法)
+      - [示例（单独使用）](#示例单独使用)
+      - [示例（配合条件变量）](#示例配合条件变量)
+    - [2. std::lock\_guard](#2-stdlock_guard)
+      - [介绍](#介绍)
+      - [示例](#示例)
+  - [1.12 条件变量（C++）](#112-条件变量c)
+      - [介绍](#介绍-1)
+      - [用法](#用法-1)
+      - [示例](#示例-1)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
   - [2.2 多路复用](#22-多路复用)
+
+
 
 # 1 基础知识 
 ## 1.2 睡眠
@@ -282,27 +296,27 @@ private:
 ```
 ### 2. <pthread.h>用法
 ```c++
-//1. 在使用互斥锁时，需要先定义一个pthread_mutex_t类型的变量，例如：
+//1. 在使用互斥锁时，需要先定义一个pthread_mutex_t类型的变量
 pthread_mutex_t m_mutex;
 ```
 ```c++
-// 2. 使用pthread_mutex_init函数对互斥锁进行初始化, 在初始化时，可以通过第二个参数指定互斥锁的属性，通常情况下可以将其设置为NULL，表示使用默认属性：
+// 2. 使用pthread_mutex_init函数对互斥锁进行初始化, 在初始化时，可以通过第二个参数指定互斥锁的属性，通常情况下可以将其设置为NULL，表示使用默认属性
 pthread_mutex_init(&m_mutex, NULL);
 ```
 ```c++
-// 3. 在使用互斥锁进行同步时，可以使用pthread_mutex_lock函数获取互斥锁，如果获取成功，则可以访问共享资源；如果获取失败，则线程会被阻塞，直到互斥锁被释放：
+// 3. 在使用互斥锁进行同步时，可以使用pthread_mutex_lock函数获取互斥锁。如果获取成功，则可以访问共享资源；如果获取失败，则线程会被阻塞，直到互斥锁被释放
 pthread_mutex_lock(&m_mutex);
 ```
 ```c++
-// 4. 在访问完共享资源后，需要使用pthread_mutex_unlock函数释放互斥锁，这样，其他线程就可以获取互斥锁并访问共享资源了：
+// 4. 在访问完共享资源后，需要使用pthread_mutex_unlock函数释放互斥锁，这样，其他线程就可以获取互斥锁并访问共享资源了
 pthread_mutex_unlock(&m_mutex);
 ```
 ```c++
-// 5. 最后，在程序结束时，需要使用pthread_mutex_destroy函数销毁互斥锁，这样可以释放互斥锁占用的资源：
+// 5. 在程序结束时，需要使用pthread_mutex_destroy函数销毁互斥锁，这样可以释放互斥锁占用的资源
 pthread_mutex_destroy(&m_mutex);
 ```
 ## 1.10 条件变量（C）
-### 1. 示例
+### 1. 示例1
 ```c++
 #include<pthread.h>
 class cond
@@ -355,47 +369,110 @@ private:
     pthread_cond_t m_cond;
 }
 ```
-### 2. <pthread.h>用法
+### 2. 示例2
 ```c++
-// 1. 初始化条件变量对象。
+#include<iostream>
+#include<pthread.h>
+#include<chrono>
+#include<thread>
+
+pthread_mutex_t mutex;
+pthread_cond_t cond;
+bool flag = false;
+
+void* threadFunc1(void* arg)
+{
+    pthread_mutex_lock(&mutex);
+    // 等待条件变量满足
+    while (!flag)
+    {
+        pthread_cond_wait(&cond, &mutex);
+    }
+    std::cout << "Thread 1: Condition is met!" << std::endl;
+    pthread_mutex_unlock(&mutex);
+    return NULL;
+}
+
+void* threadFunc2(void* arg)
+{
+    // 模拟操作
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    pthread_mutex_lock(&mutex);
+    // 设置条件变量为满足状态
+    flag = true;
+    // 唤醒等待条件变量的线程
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&mutex);
+    return NULL;
+}
+
+int main()
+{
+    pthread_t thread1, thread2;
+
+    // 初始化互斥锁和条件变量
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&cond, NULL);
+
+    // 创建线程
+    pthread_create(&thread1, NULL, threadFunc1, NULL);
+    pthread_create(&thread2, NULL, threadFunc2, NULL);
+
+    // 等待线程结束
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+
+    // 销毁互斥锁和条件变量
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&cond);
+
+    return 0;
+}
+```
+### 3. <pthread.h>用法
+```c++
+// 1. 初始化条件变量对象
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)：
+参数：
+cond：指向条件变量对象的指针。
+attr：指向条件变量属性对象的指针，一般可以传入NULL。
+返回值：成功返回0，失败返回错误码。
 ```
-    参数：
-    cond：指向条件变量对象的指针。
-    attr：指向条件变量属性对象的指针，一般可以传入NULL。
-    返回值：成功返回0，失败返回错误码。
+
 ```c++
-// 2. 销毁条件变量对象。
+// 2. 销毁条件变量对象
 int pthread_cond_destroy(pthread_cond_t *cond)：
+参数：
+cond：指向条件变量对象的指针。
+返回值：成功返回0，失败返回错误码。
 ```
-    参数：
-    cond：指向条件变量对象的指针。
-    返回值：成功返回0，失败返回错误码。
- 
+
 ```c++
 // 3. 等待条件变量满足，并在等待期间自动释放关联的互斥锁。
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)：
+参数：
+cond：指向条件变量对象的指针。
+mutex：指向互斥锁对象的指针。
+返回值：成功返回0，失败返回错误码。
 ```
-    参数：
-    cond：指向条件变量对象的指针。
-    mutex：指向互斥锁对象的指针。
-    返回值：成功返回0，失败返回错误码。
 
 ```c++
 // 4. 发送信号，唤醒一个正在等待条件变量的线程。
 int pthread_cond_signal(pthread_cond_t *cond)：
+参数：
+cond：指向条件变量对象的指针。
+返回值：成功返回0，失败返回错误码。
 ```
-    参数：
-    cond：指向条件变量对象的指针。
-    返回值：成功返回0，失败返回错误码。
 
 ```c++
 // 5. 发送广播，唤醒所有正在等待条件变量的线程。
 int pthread_cond_broadcast(pthread_cond_t *cond)：
+参数：
+cond：指向条件变量对象的指针。
+返回值：成功返回0，失败返回错误码。
 ```
-    参数：
-    cond：指向条件变量对象的指针。
-    返回值：成功返回0，失败返回错误码。
+
+
 ## 1.11 \<exception>用法
 ### 1. 介绍
     <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
@@ -435,9 +512,245 @@ int main() {
 ```
 
 
-## 1.11 std::unique_lock
-    构造函数：std::unique_lock<std::mutex> lock(mtx); // 创建std::unique_lock对象，并立即锁定互斥量mtx。等同于mtx.lock()。
+## 1.11 互斥锁（C++）
+### 1. std::unique_lock
+#### 用法
+    是 C++ 标准库提供的一个灵活的互斥锁管理类模板，它提供了多种用法来操作互斥锁，包括上锁、解锁、延期上锁等操作。
+    下面是 std::unique_lock 主要的用法:
+```c++
+// 1. 构造函数
+std::unique_lock<std::mutex> lock(mutex);                   // 创建并上锁互斥锁
+std::unique_lock<std::mutex> lock(mutex, std::defer_lock);  // 创建但不上锁互斥锁
+```
+```c++
+// 2. 手动上锁
+lock.lock();    // 上锁互斥锁
+```
 
+```c++
+// 3. 手动解锁
+lock.unlock();  // 解锁互斥锁
+```
+
+```c++
+// 4. 作用域解锁
+{
+    std::unique_lock<std::mutex> lock(mutex);  // 上锁互斥锁
+    // 互斥锁被上锁，执行其他操作
+}   // 作用域结束，互斥锁自动解锁
+
+```
+
+```c++
+// 5. 配合条件变量
+std::unique_lock<std::mutex> lock(mutex);
+condition.wait(lock);   // 等待条件满足，自动释放互斥锁并等待条件变量通知重新上锁
+```
+
+```c++
+// 6. 延迟上锁
+std::unique_lock<std::mutex> lock(mutex, std::defer_lock);
+// 执行其他操作
+lock.lock();    // 手动上锁互斥锁
+```
+
+```c++
+// 7. 所有权转移
+std::unique_lock<std::mutex> lock1(mutex);
+std::unique_lock<std::mutex> lock2(std::move(lock1));  // lock2 现在拥有互斥锁的所有权
+
+```
+#### 示例（单独使用）
+```c++
+#include <iostream>
+#include <thread>
+#include <mutex>
+
+std::mutex mtx;
+
+void printMessage(const std::string& message)
+{
+    // 上锁互斥锁
+    std::unique_lock<std::mutex> lock(mtx);  
+    // 执行临界区操作
+    std::cout << message << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    // 在作用域结束时自动解锁互斥锁
+}
+
+int main()
+{
+    std::thread t1(printMessage, "Thread 1");
+    std::thread t2(printMessage, "Thread 2");
+    t1.join();
+    t2.join();
+    return 0;
+}
+```
+#### 示例（配合条件变量）
+```c++
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+std::mutex mtx;
+std::condition_variable cv;
+bool ready = false;
+
+void waitingThread()
+{
+    std::unique_lock<std::mutex> lock(mtx);
+    while (!ready) {
+        std::cout << "Waiting thread: Condition is not met!" << std::endl;
+        cv.wait(lock);  // 等待条件变量，同时释放互斥锁
+    }
+    std::cout << "Waiting thread: Condition is met!" << std::endl;
+}
+
+void notifyingThread()
+{
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::unique_lock<std::mutex> lock(mtx);
+    ready = true;
+    cv.notify_one();  // 通知等待的线程条件变量已满足
+}
+
+int main()
+{
+    std::thread t1(waitingThread);
+    std::thread t2(notifyingThread);
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
+```
+
+### 2. std::lock_guard
+#### 介绍
+    std::lock_guard 是 C++ 标准库中提供的一个模板类，用于简化互斥锁的上锁和解锁过程。它在构造时上锁互斥锁，并在析构时自动解锁互斥锁，确保互斥锁的正确使用，避免忘记解锁的问题。
+
+    std::lock_guard 的使用非常简单，只需要按以下步骤操作：
+    1. 创建一个 std::mutex（互斥锁）对象。
+    2. 在需要保护的临界区域内，创建一个 std::lock_guard 对象并传入互斥锁对象。
+    3. 执行临界区域的代码。
+    当 std::lock_guard 对象的作用域结束时，析构函数会被调用，自动解锁互斥锁。
+#### 示例
+```c++
+#include <iostream>
+#include <thread>
+#include <mutex>
+
+std::mutex mtx;
+int sharedData = 0;
+
+void updateSharedData()
+{
+    std::lock_guard<std::mutex> lock(mtx);  // 上锁互斥锁
+    ++sharedData;   // 执行临界区域的代码
+    std::cout << "Updated shared data: " << sharedData << std::endl;
+    // 超出作用域后，lock销毁，会自动解锁互斥锁
+}
+
+int main()
+{
+    std::thread t1(updateSharedData);
+    std::thread t2(updateSharedData);
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
+
+```
+
+## 1.12 条件变量（C++）
+#### 介绍
+    C++ 中的条件变量（std::condition_variable）用于线程之间的同步和通信。它允许一个线程等待另一个线程满足特定的条件，从而实现线程的协调和同步。
+#### 用法
+```c++
+// 1. 等待条件满足
+// 一个线程通过调用 wait() 函数来等待条件变量满足特定条件。在等待期间，线程会被阻塞，释放所持有的互斥锁，并等待其他线程通过 notify_one() 或 notify_all() 来通知条件满足。
+std::unique_lock<std::mutex> lock(mutex);
+cv.wait(lock, []{ return condition; });
+```
+
+```c++
+// 2. 通知条件满足
+// 一个线程通过调用 notify_one() 或 notify_all() 来通知其他等待的线程条件已经满足，从而唤醒等待的线程继续执行。
+std::unique_lock<std::mutex> lock(mutex);
+condition = true;
+cv.notify_one();
+```
+
+```c++
+// 3. 超时等待
+// 除了无限等待外，还可以设置等待的超时时间。可以使用 wait_for() 或 wait_until() 函数来实现。
+std::unique_lock<std::mutex> lock(mutex);
+if (cv.wait_for(lock, std::chrono::seconds(1), []{ return condition; }))
+{
+    // 条件满足
+}
+else
+{
+    // 超时
+}
+```
+
+```c++
+// 4. 条件变量的结合使用
+// 通常与互斥锁配合使用，以保护共享资源的访问
+```
+#### 示例
+```c++
+#include <iostream>
+#include <thread>
+#include <condition_variable>
+
+std::mutex mtx;
+std::condition_variable cv;
+bool ready = false;
+
+void worker()
+{
+    std::unique_lock<std::mutex> lock(mtx);
+    std::cout << "Worker: Waiting for signal..." << std::endl;
+    cv.wait(lock, [] { return ready; });  // 等待条件变量满足。唤醒时会对ready进行检查，当ready为false时，继续阻塞，防止虚假唤醒。
+    std::cout << "Worker: Got the signal!" << std::endl;
+}
+
+void setter()
+{
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // 模拟耗时操作
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        ready = true;  // 设置条件变量为满足状态
+        cv.notify_one();  // 发送信号通知等待的线程
+    }
+}
+
+int main()
+{
+    std::thread t1(worker);
+    std::thread t2(setter);
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
+```
+```c++
+如果：ready = false;
+那么：cv.wait(lock, [] { return ready; });  // 线程被唤醒时检查ready, 如果为false，则继续阻塞
+等价：
+while(!ready) {     
+    cv.wait(lock);                         // 线程被唤醒时检查ready, 如果为false，则继续阻塞
+}
+```
 # 2 功能模块
 ## 2.1 线程池
 ## 2.2 多路复用
