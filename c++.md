@@ -139,6 +139,180 @@ std::mutex Singleton::mtx;
 ```
     在上述示例中，通过双重检查锁定的方式实现线程安全的懒汉模式。在 getInstance 方法中，首先检查实例是否为 nullptr，如果是，则加锁并再次检查，以确保只有一个线程创建实例。这样可以减少加锁的频率，提高性能。
 
+## 1.8 实现封装信号量操作的类
+```c++
+#include<semaphore.h>
+
+// 封装信号量的操作
+class sem
+{
+public:
+    // 默认构造函数：初始化信号量为0
+    sem()
+    {
+        if (sem_init(&m_sem, 0, 0) != 0)
+        {
+            throw std::exception();
+        }
+    }
+    // 有参构造函数：初始化信号量为num
+    sem(int num)
+    {
+        if (sem_init(&m_sem, 0, num) != 0)
+        {
+            throw std::exception();
+        }
+    }
+    // 析构函数：销毁信号量
+    ~sem()
+    {
+        sem_destroy(&m_sem);
+    }
+    // 成员函数：减少信号量的值。如果信号量的值大于0，则将其减一，表示资源已被占用，函数返回true；如果信号量值为0，则阻塞等待，直到有其他线程调用post函数，增加信号量的值
+    bool wait()
+    {
+        return sem_wait(&m_sem) == 0;
+    }
+    // 成员函数：增加信号量的值。表示资源已经释放，其他等待的线程可以继续执行，函数返回true
+    bool post()
+    {
+        return sem_post(&m_sem) == 0;
+    }
+
+private:
+    sem_t m_sem;
+};
+```
+
+## 1.9 <semaphore.h>的用法
+### 1. sem_init函数
+```c++
+int sem_init(sem_t *sem, int pshared, unsigned int value);
+```
+    该函数用于初始化一个信号量，其中：
+    sem参数是指向信号量的指针；
+    pshared参数指定信号量的类型，取值为0表示信号量是线程内共享的，取值为非0表示信号量是进程间共享的；
+    value参数指定信号量的初始值。
+    该函数成功返回0，失败返回-1。
+### 2. sem_destroy函数
+```c++
+int sem_destroy(sem_t *sem);
+```
+    该函数用于销毁一个信号量，其中：
+    sem参数是指向信号量的指针。
+    该函数成功返回0，失败返回-1。
+### 3. sem_wait函数
+```c++
+int sem_wait(sem_t *sem);
+```
+    该函数用于获取一个信号量，如果信号量的值大于0，则将其减1并返回0，表示获取成功；如果信号量的值等于0，则线程会被阻塞，直到有其他线程或者进程释放信号量。
+    需要注意的是，sem_wait函数是原子操作，即在获取信号量的过程中，不会被其他线程或者进程打断。如果在获取信号量的过程中，出现信号中断或者其他错误，则会返回-1，并设置相应的错误码。
+### 4. sem_post函数
+```c++
+int sem_post(sem_t *sem);
+```
+    该函数用于释放一个信号量，将其值加1。
+    需要注意的是，sem_post函数也是原子操作，即在释放信号量的过程中，不会被其他线程或者进程打断。如果释放信号量失败，则会返回-1，并设置相应的错误码。
+    这些函数是使用信号量的基本操作。在使用时，需要先通过sem_init函数初始化一个信号量，然后在需要同步的代码段中使用sem_wait和sem_post函数来获取和释放信号量。最后，使用sem_destroy函数来销毁信号量。
+
+## 1.9 实现封装互斥锁操作的类
+```c++
+#include<pthread.h>
+#include<exception>
+class locker
+{
+public:
+    // 构造函数：初始化互斥锁，如果失败，抛出异常
+    locker()
+    {
+        if (pthread_mutex_init(&m_mutex, NULL) != 0)
+        {
+            throw std::exception();
+        }
+    }
+    // 析构函数：销毁互斥锁
+    ~locker()
+    {
+        pthread_mutex_destroy(&m_mutex);
+    }
+    // 获取锁
+    bool lock()
+    {
+        return pthread_mutex_lock(&m_mutex) == 0;
+    }
+    // 释放锁
+    bool unlock()
+    {
+        return pthread_mutex_unlock(&m_mutex) == 0;
+    }
+    // 获取互斥锁指针的函数，返回一个指向互斥锁的指针
+    pthread_mutex_t *get()
+    {
+        return &m_mutex;
+    }
+
+private:
+    pthread_mutex_t m_mutex;
+};
+```
+## 1.10 pthread_mutex_t：互斥锁类型。使用互斥锁可以保护共享资源，避免多个线程同时访问导致数据不一致的问题。
+```c++
+//1. 在使用互斥锁时，需要先定义一个pthread_mutex_t类型的变量，例如：
+pthread_mutex_t m_mutex;
+```
+```c++
+// 2. 使用pthread_mutex_init函数对互斥锁进行初始化, 在初始化时，可以通过第二个参数指定互斥锁的属性，通常情况下可以将其设置为NULL，表示使用默认属性：
+pthread_mutex_init(&m_mutex, NULL);
+```
+```c++
+// 3. 在使用互斥锁进行同步时，可以使用pthread_mutex_lock函数获取互斥锁，如果获取成功，则可以访问共享资源；如果获取失败，则线程会被阻塞，直到互斥锁被释放：
+pthread_mutex_lock(&m_mutex);
+```
+```c++
+// 4. 在访问完共享资源后，需要使用pthread_mutex_unlock函数释放互斥锁，这样，其他线程就可以获取互斥锁并访问共享资源了：
+pthread_mutex_unlock(&m_mutex);
+```
+```c++
+// 5. 最后，在程序结束时，需要使用pthread_mutex_destroy函数销毁互斥锁，这样可以释放互斥锁占用的资源：
+pthread_mutex_destroy(&m_mutex);
+```
+
+## 1.11 exception头文件的用法
+    <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
+
+    std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
+    std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
+    std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
+    std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
+    try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
+    throw：抛出异常语句。使用throw语句可以抛出一个异常。
+    catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
+    std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
+    使用异常处理可以让程序更加健壮，避免出现未处理的错误导致程序崩溃。需要注意的是，在使用异常处理时需要特别注意异常的类型和处理方式，避免出现不必要的异常和异常处理不当导致的问题。
+
+```c++
+#include <iostream>
+#include <exception>
+
+int main() {
+    try {
+        int a, b;
+        std::cout << "Enter two numbers: ";
+        std::cin >> a >> b;
+
+        if (b == 0) {
+            throw std::runtime_error("Divide by zero error");
+        }
+
+        std::cout << "Result: " << a / b << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    return 0;
+}
+```
+
 # 2 功能模块
 ## 2.1 线程池
 ## 2.2 多路复用
