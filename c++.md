@@ -1,5 +1,8 @@
 - [1 基础知识](#1-基础知识)
-  - [1.2 睡眠](#12-睡眠)
+  - [1.1 \<exception\>用法](#11-exception用法)
+    - [1. 介绍](#1-介绍)
+    - [2. 示例](#2-示例)
+  - [1.2 sleep](#12-sleep)
   - [1.3 getopt函数](#13-getopt函数)
   - [1.4 ".h"头文件的作用](#14-h头文件的作用)
   - [1.5 静态局部变量初始化的线程安全性](#15-静态局部变量初始化的线程安全性)
@@ -18,9 +21,6 @@
     - [1. 示例1](#1-示例1)
     - [2. 示例2](#2-示例2)
     - [3. \<pthread.h\>用法](#3-pthreadh用法)
-  - [1.11 \<exception\>用法](#111-exception用法)
-    - [1. 介绍](#1-介绍)
-    - [2. 示例](#2-示例)
   - [1.11 互斥锁（C++）](#111-互斥锁c)
     - [1. std::unique\_lock](#1-stdunique_lock)
       - [用法](#用法)
@@ -28,10 +28,11 @@
       - [示例（配合条件变量）](#示例配合条件变量)
     - [2. std::lock\_guard](#2-stdlock_guard)
       - [介绍](#介绍)
+      - [用法](#用法-1)
       - [示例](#示例)
   - [1.12 条件变量（C++）](#112-条件变量c)
       - [介绍](#介绍-1)
-      - [用法](#用法-1)
+      - [用法](#用法-2)
       - [示例](#示例-1)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
@@ -40,7 +41,45 @@
 
 
 # 1 基础知识 
-## 1.2 睡眠
+## 1.1 \<exception>用法
+### 1. 介绍
+    <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
+
+    (1) std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
+    (2) std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
+    (3) std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
+    (4) std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
+    (5) try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
+    (6) throw：抛出异常语句。使用throw语句可以抛出一个异常。
+    (7) catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
+    (8) std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
+
+    使用异常处理可以让程序更加健壮，避免出现未处理的错误导致程序崩溃。需要注意的是，在使用异常处理时需要特别注意异常的类型和处理方式，避免出现不必要的异常和异常处理不当导致的问题。
+### 2. 示例
+```c++
+#include <iostream>
+#include <exception>
+
+int main() {
+    try {
+        int a, b;
+        std::cout << "Enter two numbers: ";
+        std::cin >> a >> b;
+
+        if (b == 0) {
+            throw std::runtime_error("Divide by zero error");
+        }
+
+        std::cout << "Result: " << a / b << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    return 0;
+}
+```
+
+## 1.2 sleep
 ```c++
 #include<thread>
 #include<chrono>
@@ -472,46 +511,6 @@ cond：指向条件变量对象的指针。
 返回值：成功返回0，失败返回错误码。
 ```
 
-
-## 1.11 \<exception>用法
-### 1. 介绍
-    <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
-
-    (1) std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
-    (2) std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
-    (3) std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
-    (4) std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
-    (5) try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
-    (6) throw：抛出异常语句。使用throw语句可以抛出一个异常。
-    (7) catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
-    (8) std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
-
-    使用异常处理可以让程序更加健壮，避免出现未处理的错误导致程序崩溃。需要注意的是，在使用异常处理时需要特别注意异常的类型和处理方式，避免出现不必要的异常和异常处理不当导致的问题。
-### 2. 示例
-```c++
-#include <iostream>
-#include <exception>
-
-int main() {
-    try {
-        int a, b;
-        std::cout << "Enter two numbers: ";
-        std::cin >> a >> b;
-
-        if (b == 0) {
-            throw std::runtime_error("Divide by zero error");
-        }
-
-        std::cout << "Result: " << a / b << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-
-    return 0;
-}
-```
-
-
 ## 1.11 互斥锁（C++）
 ### 1. std::unique_lock
 #### 用法
@@ -631,7 +630,7 @@ int main()
 ### 2. std::lock_guard
 #### 介绍
     std::lock_guard 是 C++ 标准库中提供的一个模板类，用于简化互斥锁的上锁和解锁过程。它在构造时上锁互斥锁，并在析构时自动解锁互斥锁，确保互斥锁的正确使用，避免忘记解锁的问题。
-
+#### 用法
     std::lock_guard 的使用非常简单，只需要按以下步骤操作：
     1. 创建一个 std::mutex（互斥锁）对象。
     2. 在需要保护的临界区域内，创建一个 std::lock_guard 对象并传入互斥锁对象。
