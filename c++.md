@@ -1,3 +1,29 @@
+- [1 基础知识](#1-基础知识)
+  - [1.1 std::unique\_lock，用于管理互斥量（std::mutex）的RAII类，提供了更多的灵活性和功能，用法如下：](#11-stdunique_lock用于管理互斥量stdmutex的raii类提供了更多的灵活性和功能用法如下)
+  - [1.2 睡眠](#12-睡眠)
+  - [1.3 getopt函数](#13-getopt函数)
+  - [1.4 ".h"头文件的作用](#14-h头文件的作用)
+  - [1.5 静态局部变量初始化的线程安全性](#15-静态局部变量初始化的线程安全性)
+  - [1.6 饿汉模式 （程序启动时创建并初始化对象）](#16-饿汉模式-程序启动时创建并初始化对象)
+    - [以下是饿汉模式的示例代码](#以下是饿汉模式的示例代码)
+  - [1.7 懒汉模式（需要时创建并初始化对象）](#17-懒汉模式需要时创建并初始化对象)
+    - [1. 使用加锁方式实现线程安全懒汉模式：](#1-使用加锁方式实现线程安全懒汉模式)
+    - [2. 使用双重检查锁定方式实现线程安全懒汉模式：](#2-使用双重检查锁定方式实现线程安全懒汉模式)
+  - [1.8 信号量实现（C语言）](#18-信号量实现c语言)
+    - [1. 示例：](#1-示例)
+    - [2. \<semaphore.h\>用法：](#2-semaphoreh用法)
+  - [1.9 互斥锁实现（C语言）](#19-互斥锁实现c语言)
+    - [1. 示例：](#1-示例-1)
+    - [2. \<pthread.h\>用法：](#2-pthreadh用法)
+  - [1.10 条件变量实现（C语言）](#110-条件变量实现c语言)
+    - [1. 示例：](#1-示例-2)
+    - [2.](#2)
+  - [1.11 \<exception\>用法](#111-exception用法)
+    - [1. 介绍：](#1-介绍)
+    - [2. 示例：](#2-示例)
+- [2 功能模块](#2-功能模块)
+  - [2.1 线程池](#21-线程池)
+  - [2.2 多路复用](#22-多路复用)
 # 1 基础知识 
 ## 1.1 std::unique_lock，用于管理互斥量（std::mutex）的RAII类，提供了更多的灵活性和功能，用法如下：
     构造函数：std::unique_lock<std::mutex> lock(mtx); // 创建std::unique_lock对象，并立即锁定互斥量mtx。等同于mtx.lock()。
@@ -139,8 +165,9 @@ std::mutex Singleton::mtx;
 ```
     在上述示例中，通过双重检查锁定的方式实现线程安全的懒汉模式。在 getInstance 方法中，首先检查实例是否为 nullptr，如果是，则加锁并再次检查，以确保只有一个线程创建实例。这样可以减少加锁的频率，提高性能。
 
-## 1.8 实现封装信号量操作的类
-```c++
+## 1.8 信号量实现（C语言）
+### 1. 示例：
+```c
 #include<semaphore.h>
 
 // 封装信号量的操作
@@ -183,10 +210,9 @@ private:
     sem_t m_sem;
 };
 ```
-
-## 1.9 <semaphore.h>的用法
-### 1. sem_init函数
+### 2. <semaphore.h>用法：
 ```c++
+// 1. sem_init函数
 int sem_init(sem_t *sem, int pshared, unsigned int value);
 ```
     该函数用于初始化一个信号量，其中：
@@ -194,28 +220,29 @@ int sem_init(sem_t *sem, int pshared, unsigned int value);
     pshared参数指定信号量的类型，取值为0表示信号量是线程内共享的，取值为非0表示信号量是进程间共享的；
     value参数指定信号量的初始值。
     该函数成功返回0，失败返回-1。
-### 2. sem_destroy函数
 ```c++
+// 2. sem_destroy函数
 int sem_destroy(sem_t *sem);
 ```
     该函数用于销毁一个信号量，其中：
     sem参数是指向信号量的指针。
     该函数成功返回0，失败返回-1。
-### 3. sem_wait函数
 ```c++
+// 3. sem_wait函数
 int sem_wait(sem_t *sem);
 ```
     该函数用于获取一个信号量，如果信号量的值大于0，则将其减1并返回0，表示获取成功；如果信号量的值等于0，则线程会被阻塞，直到有其他线程或者进程释放信号量。
     需要注意的是，sem_wait函数是原子操作，即在获取信号量的过程中，不会被其他线程或者进程打断。如果在获取信号量的过程中，出现信号中断或者其他错误，则会返回-1，并设置相应的错误码。
-### 4. sem_post函数
 ```c++
+// 4. sem_post函数
 int sem_post(sem_t *sem);
 ```
     该函数用于释放一个信号量，将其值加1。
     需要注意的是，sem_post函数也是原子操作，即在释放信号量的过程中，不会被其他线程或者进程打断。如果释放信号量失败，则会返回-1，并设置相应的错误码。
     这些函数是使用信号量的基本操作。在使用时，需要先通过sem_init函数初始化一个信号量，然后在需要同步的代码段中使用sem_wait和sem_post函数来获取和释放信号量。最后，使用sem_destroy函数来销毁信号量。
 
-## 1.9 实现封装互斥锁操作的类
+## 1.9 互斥锁实现（C语言）
+### 1. 示例：
 ```c++
 #include<pthread.h>
 #include<exception>
@@ -255,7 +282,7 @@ private:
     pthread_mutex_t m_mutex;
 };
 ```
-## 1.10 pthread_mutex_t：互斥锁类型。使用互斥锁可以保护共享资源，避免多个线程同时访问导致数据不一致的问题。
+### 2. <pthread.h>用法：
 ```c++
 //1. 在使用互斥锁时，需要先定义一个pthread_mutex_t类型的变量，例如：
 pthread_mutex_t m_mutex;
@@ -276,20 +303,74 @@ pthread_mutex_unlock(&m_mutex);
 // 5. 最后，在程序结束时，需要使用pthread_mutex_destroy函数销毁互斥锁，这样可以释放互斥锁占用的资源：
 pthread_mutex_destroy(&m_mutex);
 ```
+## 1.10 条件变量实现（C语言）
+### 1. 示例：
+```c++
+class cond
+{
+public:
+    // 构造函数：初始化条件变量
+    cond()
+    {
+        if (pthread_cond_init(&m_cond, NULL) != 0)
+        {
+            throw std::exception();
+        }
+    }
+    // 析构函数：销毁条件变量
+    ~cond()
+    {
+        pthread_cond_destroy(&m_cond);
+    }
+    // 成员函数：等待条件变量满足，该函数在等待条件变量期间会释放互斥锁，并在条件变量满足时重新获得互斥锁
+    bool wait(pthread_mutex_t *m_mutex)
+    {
+        int ret = 0;
+        //pthread_mutex_lock(&m_mutex);
+        ret = pthread_cond_wait(&m_cond, m_mutex);
+        //pthread_mutex_unlock(&m_mutex);
+        return ret == 0;
+    }
+    // 成员函数：在指定时间内等待条件变量满足
+    bool timewait(pthread_mutex_t *m_mutex, struct timespec t)
+    {
+        int ret = 0;
+        //pthread_mutex_lock(&m_mutex);
+        ret = pthread_cond_timedwait(&m_cond, m_mutex, &t);
+        //pthread_mutex_unlock(&m_mutex);
+        return ret == 0;
+    }
+    // 成员函数：发送信号唤醒一个正在等待条件变量的线程
+    bool signal()
+    {
+        return pthread_cond_signal(&m_cond) == 0;
+    }
+    // 成员函数：发送广播唤醒所有正在等待条件变量的线程
+    bool broadcast()
+    {
+        return pthread_cond_broadcast(&m_cond) == 0;
+    }
 
-## 1.11 exception头文件的用法
+private:
+    //static pthread_mutex_t m_mutex;
+    pthread_cond_t m_cond;
+```
+### 2. 
+## 1.11 \<exception>用法
+### 1. 介绍：
     <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
 
-    std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
-    std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
-    std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
-    std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
-    try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
-    throw：抛出异常语句。使用throw语句可以抛出一个异常。
-    catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
-    std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
+    (1) std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
+    (2) std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
+    (3) std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
+    (4) std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
+    (5) try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
+    (6) throw：抛出异常语句。使用throw语句可以抛出一个异常。
+    (7) catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
+    (8) std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
+
     使用异常处理可以让程序更加健壮，避免出现未处理的错误导致程序崩溃。需要注意的是，在使用异常处理时需要特别注意异常的类型和处理方式，避免出现不必要的异常和异常处理不当导致的问题。
-### 示例：
+### 2. 示例：
 ```c++
 #include <iostream>
 #include <exception>
