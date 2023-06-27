@@ -36,7 +36,7 @@
     - [（2）用法](#2用法)
     - [（3）示例](#3示例)
   - [1.13 C++连接数据库的方法](#113-c连接数据库的方法)
-  - [1.14 与mysql交互（MySQL Connector/C++）](#114-与mysql交互mysql-connectorc)
+  - [1.14 与MySQL交互（MySQL C API）](#114-与mysql交互mysql-c-api)
     - [（1）MySQL C API](#1mysql-c-api)
     - [（2）连接和增删改查](#2连接和增删改查)
   - [1.15](#115)
@@ -778,7 +778,7 @@ while(!ready) {
 
     5. 第三方库和框架：除了上述提到的方式，还有许多第三方库和框架可用于连接MySQL数据库。例如，Boost提供了一些与数据库交互的组件，如Boost.Asio和Boost.Beast；Poco库提供了易于使用的数据库接口；Qt框架具有Qt SQL模块等
 
-## 1.14 与mysql交互（MySQL Connector/C++）
+## 1.14 与MySQL交互（MySQL C API）
 ### （1）MySQL C API
     1. 连接管理函数：
     mysql_init：初始化MySQL对象。
