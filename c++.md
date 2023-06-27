@@ -44,9 +44,13 @@
     - [（2）示例](#2示例-3)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
-  - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-4)
     - [（2）示例](#2示例-4)
+      - [示例1](#示例1)
+      - [示例2 (webserver)：](#示例2-webserver)
+  - [2.2 数据库连接池](#22-数据库连接池)
+    - [（1）介绍](#1介绍-5)
+    - [（2）示例](#2示例-5)
       - [sql\_connection.h](#sql_connectionh)
       - [sql\_connection.cpp](#sql_connectioncpp)
   - [2.3 多路复用](#23-多路复用)
@@ -919,7 +923,322 @@ g++ mytest.cpp -o mytest -lpthread -lmysqlclient && ./mytest
 
 # 2 功能模块
 ## 2.1 线程池
+### （1）介绍
+    目的：
+    线程池的主要目的是解决线程创建和销毁的开销问题，以及避免创建过多的线程导致系统资源耗尽的风险。通过预先创建一定数量的线程，并将任务分配给这些线程执行，线程池可以有效地管理线程的生命周期和资源消耗。
 
+    组成：
+    1. 线程池管理器（ThreadPool Manager）：负责创建、销毁和管理线程池中的线程。
+    2. 工作队列（Work Queue）：用于存储待执行的任务，线程池中的线程会从工作队列中获取任务进行处理。
+    3. 线程池（Thread Pool）：包含一定数量的线程，用于执行工作队列中的任务。
+    4. 任务（Task）：需要执行的具体工作单元，可以是函数、方法或其他可执行的代码块。
+    
+    优点：
+    5. 提高性能和响应性：线程池可以减少线程创建和销毁的开销，使得线程可以立即执行任务，提高系统的响应速度。
+    6. 资源管理：线程池可以限制线程的数量，避免创建过多的线程，从而避免系统资源的浪费和耗尽。
+    7. 提供线程复用和可管理性：线程池可以重复利用线程来执行多个任务，提高线程的复用率，并提供统一的管理和监控机制。
+    8. 控制并发度：通过控制线程池中的线程数量和任务队列的大小，可以控制系统的并发度，防止系统被过多的任务拖垮。
+### （2）示例
+#### 示例1
+```c++
+// threadpool.h
+
+#include<iostream>
+#include<thread>
+#include<atomic>
+#include<mutex>
+#include<condition_variable>
+#include<chrono>
+#include<functional>
+#include<vector>
+#include<queue>
+
+using ThreadTask = std::function<void()>;
+
+class ThreadPool
+{
+private:
+    int max_threads;
+    int max_tasks;
+    std::vector<std::thread> threads;
+    std::queue<ThreadTask> tasks;
+    std::mutex tasks_guard;
+    bool is_running;
+    std::condition_variable tasks_event;
+
+public:
+    ThreadPool(int threads_num = std::thread::hardware_concurrency(), int tasks_num = -1) {
+        if(threads_num < 1) {
+            max_threads = 1;
+        } else {
+            max_threads = threads_num;
+        }
+        max_tasks = tasks_num;
+        is_running = false;
+    }
+
+    ~ThreadPool(){WaitForStop();}
+
+    // 添加一个任务
+    bool AddTask(ThreadTask task) {
+        // 加锁
+        {
+            std::unique_lock<std::mutex> lock(tasks_guard);
+            if(max_tasks == -1) {
+                tasks.push(task);
+            } else {
+                if(tasks.size() >= max_tasks) {
+                    return false;
+                } else {
+                    tasks.push(task);
+                }
+            }
+        }
+        // 唤醒一个线程
+        tasks_event.notify_one();
+        return true;
+    }
+
+    // 启动线程池
+    bool Start() {
+        if(is_running) {
+            return false;
+        } 
+        is_running = true;
+        if(threads.empty()) {
+            CreateThreads();
+        }
+        return true;
+    }
+
+    // 停止所有线程
+    void WaitForStop() {
+        if(!is_running) {
+            return;
+        }
+        is_running = false;
+        tasks_event.notify_all();
+        for(auto &t:threads) {
+            t.join();
+        }
+        threads.clear();
+    }
+
+private:
+    // 创建线程
+    void CreateThreads() {
+        for(int i = 0; i < max_threads; i++) {
+            threads.push_back(std::thread(&ThreadPool::ThreadRoutine, this));
+        } 
+    }
+
+    // 工作线程:从任务队列中取一个运行
+    static void ThreadRoutine(ThreadPool *ptr) {
+        if(ptr == nullptr) {
+            return;
+        }
+        while(ptr->is_running || !ptr->tasks.empty()) {
+            ThreadTask task;
+            // 加锁
+            {
+                std::unique_lock<std::mutex> lock(ptr->tasks_guard);
+                ptr->tasks_event.wait(lock, [&](){return !ptr->tasks.empty();});
+                task = ptr->tasks.front();
+                ptr->tasks.pop();
+            }
+            task();
+        }
+    }
+};
+
+```
+```c++
+// example.cpp
+
+#include "threadpool.h"
+
+int product_sell = 0;
+void ProductCounter(std::mutex* task_protect)
+{
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    std::lock_guard<std::mutex> lock(*task_protect);
+    std::cout <<"How many products sell: " << product_sell++ << std::endl;
+}
+
+int main()
+{
+    std::mutex protect_task;
+    ThreadPool pool(20, -1);
+    for(int i = 0; i < 100; i++)
+    {
+        pool.AddTask(std::bind(ProductCounter, &protect_task));
+    }
+    pool.Start();
+    // Do more stuff...
+    for(int i = 0; i < 50; i++)
+    {
+        pool.AddTask(std::bind(ProductCounter, &protect_task));
+    }
+    pool.WaitForStop();
+    return 0;
+}
+```
+#### 示例2 (webserver)：
+```c++
+#ifndef THREADPOOL_H
+#define THREADPOOL_H
+
+#include <list>
+#include <cstdio>
+#include <exception>
+#include <pthread.h>
+#include "../lock/locker.h"
+#include "../CGImysql/sql_connection_pool.h"
+
+template <typename T>
+class threadpool
+{
+public:
+    /*thread_number是线程池中线程的数量，max_requests是请求队列中最多允许的、等待处理的请求的数量*/
+    threadpool(int actor_model, connection_pool *connPool, int thread_number = 8, int max_request = 10000);
+    ~threadpool();
+    bool append(T *request, int state);
+    bool append_p(T *request);
+
+private:
+    /*工作线程运行的函数，它不断从工作队列中取出任务并执行之*/
+    static void *worker(void *arg);
+    void run();
+
+private:
+    int m_thread_number;        //线程池中的线程数
+    int m_max_requests;         //请求队列中允许的最大请求数
+    pthread_t *m_threads;       //描述线程池的数组，其大小为m_thread_number
+    std::list<T *> m_workqueue; //请求队列
+    locker m_queuelocker;       //保护请求队列的互斥锁
+    sem m_queuestat;            //是否有任务需要处理
+    connection_pool *m_connPool;  //数据库
+    int m_actor_model;          //模型切换
+};
+template <typename T>
+threadpool<T>::threadpool( int actor_model, connection_pool *connPool, int thread_number, int max_requests) : m_actor_model(actor_model),m_thread_number(thread_number), m_max_requests(max_requests), m_threads(NULL),m_connPool(connPool)
+{
+    if (thread_number <= 0 || max_requests <= 0)
+        throw std::exception();
+    m_threads = new pthread_t[m_thread_number];
+    if (!m_threads)
+        throw std::exception();
+    for (int i = 0; i < thread_number; ++i)
+    {
+        if (pthread_create(m_threads + i, NULL, worker, this) != 0)
+        {
+            delete[] m_threads;
+            throw std::exception();
+        }
+        if (pthread_detach(m_threads[i]))
+        {
+            delete[] m_threads;
+            throw std::exception();
+        }
+    }
+}
+template <typename T>
+threadpool<T>::~threadpool()
+{
+    delete[] m_threads;
+}
+template <typename T>
+bool threadpool<T>::append(T *request, int state)
+{
+    m_queuelocker.lock();
+    if (m_workqueue.size() >= m_max_requests)
+    {
+        m_queuelocker.unlock();
+        return false;
+    }
+    request->m_state = state;
+    m_workqueue.push_back(request);
+    m_queuelocker.unlock();
+    m_queuestat.post();
+    return true;
+}
+template <typename T>
+bool threadpool<T>::append_p(T *request)
+{
+    m_queuelocker.lock();
+    if (m_workqueue.size() >= m_max_requests)
+    {
+        m_queuelocker.unlock();
+        return false;
+    }
+    m_workqueue.push_back(request);
+    m_queuelocker.unlock();
+    m_queuestat.post();
+    return true;
+}
+template <typename T>
+void *threadpool<T>::worker(void *arg)
+{
+    threadpool *pool = (threadpool *)arg;
+    pool->run();
+    return pool;
+}
+template <typename T>
+void threadpool<T>::run()
+{
+    while (true)
+    {
+        m_queuestat.wait();
+        m_queuelocker.lock();
+        if (m_workqueue.empty())
+        {
+            m_queuelocker.unlock();
+            continue;
+        }
+        T *request = m_workqueue.front();
+        m_workqueue.pop_front();
+        m_queuelocker.unlock();
+        if (!request)
+            continue;
+        if (1 == m_actor_model)
+        {
+            if (0 == request->m_state)
+            {
+                if (request->read_once())
+                {
+                    request->improv = 1;
+                    connectionRAII mysqlcon(&request->mysql, m_connPool);
+                    request->process();
+                }
+                else
+                {
+                    request->improv = 1;
+                    request->timer_flag = 1;
+                }
+            }
+            else
+            {
+                if (request->write())
+                {
+                    request->improv = 1;
+                }
+                else
+                {
+                    request->improv = 1;
+                    request->timer_flag = 1;
+                }
+            }
+        }
+        else
+        {
+            connectionRAII mysqlcon(&request->mysql, m_connPool);
+            request->process();
+        }
+    }
+}
+#endif
+```
 ## 2.2 数据库连接池
 ### （1）介绍
     数据库连接池是一个管理数据库连接的软件组件或模块，它允许应用程序在需要时从预先创建的一组数据库连接中获取连接，并在使用完毕后将其返回给连接池，
