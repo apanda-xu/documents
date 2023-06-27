@@ -42,6 +42,13 @@
   - [1.15 防止头文件重复包含](#115-防止头文件重复包含)
     - [（1）介绍](#1介绍-3)
     - [（2）示例](#2示例-3)
+  - [1.16 创建线程](#116-创建线程)
+    - [（1）C](#1c)
+      - [用法](#用法-2)
+      - [示例](#示例-1)
+    - [（2）C++](#2c)
+      - [用法](#用法-3)
+      - [示例](#示例-2)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
     - [（1）介绍](#1介绍-4)
@@ -919,6 +926,152 @@ g++ mytest.cpp -o mytest -lpthread -lmysqlclient && ./mytest
 当你在其他源文件中第一次包含 myheader.h 时，MYHEADER_H 宏将被定义并且条件为真，因此头文件的内容将被包含在编译过程中。
 当其他源文件再次包含相同的头文件时，预处理器会检测到 MYHEADER_H 宏已经定义，因此条件为假，头文件的内容将被跳过，避免了多次包含同一个头文件的问题。
 这样做的好处是，无论你在多个源文件中多次包含该头文件，编译器只会处理一次头文件的内容，避免了重复定义和编译错误。
+```
+
+## 1.16 创建线程
+### （1）C
+#### 用法
+```c++
+// 1. 创建一个新的线程
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void*), void *arg)
+参数：
+thread：指向 pthread_t 类型的变量，用于存储新线程的标识符
+attr：指向 pthread_attr_t 类型的变量，用于设置线程的属性，通常使用 NULL 以使用默认属性
+start_routine：指向线程函数的指针，该函数接受一个 void* 类型的参数并返回一个 void* 类型的值
+arg：传递给线程函数的参数。
+返回值：若成功创建线程，则返回 0；否则返回一个非零错误码。
+
+// 2. 终止当前线程，并返回一个指向 value_ptr 的指针作为线程的退出状态
+void pthread_exit(void *value_ptr)
+参数：
+value_ptr 是一个指针，用于传递线程的退出状态
+注意：调用 pthread_exit() 将立即终止线程的执行，不会等待其他线程完成
+
+// 3. 等待指定的线程结束，并获取其退出状态
+int pthread_join(pthread_t thread, void **value_ptr)
+参数：
+thread：要等待的线程的标识符
+value_ptr：指向指针的指针，用于接收线程的退出状态
+返回值：若成功等待线程并获取退出状态，则返回 0；否则返回一个非零错误码
+
+// 4. 请求取消指定的线程
+int pthread_cancel(pthread_t thread)
+参数：
+thread 是要取消的线程的标识符
+返回值：若成功发送取消请求，则返回 0；否则返回一个非零错误码
+
+// 5. 将指定的线程标记为可分离的状态，使其在结束时自动释放资源
+int pthread_detach(pthread_t thread)
+参数：
+thread 是要标记为可分离的线程的标识符
+返回值：若成功将线程标记为可分离状态，则返回 0；否则返回一个非零错误码
+
+// 6. 返回调用线程的标识符
+pthread_t pthread_self(void)
+返回值：当前线程的标识符
+
+```
+
+#### 示例
+```c++
+#include <iostream>
+#include <pthread.h>
+
+// 线程函数，打印消息
+void* printMessage(void* arg) {
+    std::string message = static_cast<char*>(arg);
+    std::cout << "Thread ID: " << pthread_self() << " Message: " << message << std::endl;
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t thread1, thread2;
+    const char* message1 = "Hello from Thread 1";
+    const char* message2 = "Hello from Thread 2";
+
+    // 创建线程1，并执行线程函数printMessage
+    if (pthread_create(&thread1, NULL, printMessage, (void*)message1) != 0) {
+        std::cerr << "Failed to create thread 1" << std::endl;
+        return 1;
+    }
+
+    // 创建线程2，并执行线程函数printMessage
+    if (pthread_create(&thread2, NULL, printMessage, (void*)message2) != 0) {
+        std::cerr << "Failed to create thread 2" << std::endl;
+        return 1;
+    }
+
+    // 等待线程1和线程2执行完成
+    if (pthread_join(thread1, NULL) != 0) {
+        std::cerr << "Failed to join thread 1" << std::endl;
+        return 1;
+    }
+
+    if (pthread_join(thread2, NULL) != 0) {
+        std::cerr << "Failed to join thread 2" << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+```
+### （2）C++
+#### 用法
+```c++
+// 1. 创建一个新的线程，并执行指定的函数
+std::thread::thread()
+参数：
+f：要在新线程中执行的函数（可以是函数指针、函数对象、Lambda 表达式等）
+args：传递给函数的参数。
+例子：
+void myFunction(int arg) {
+    // 线程执行的函数体
+}
+std::thread myThread(myFunction, 42); // 创建一个新线程，执行 myFunction(42)
+
+// 2. 等待线程的执行完成
+std::thread::join()
+例子：
+std::thread myThread(myFunction, 42);
+myThread.join(); // 将 myThread 线程与当前线程分离
+
+// 3. 将线程与当前线程分离，使其成为独立执行的线程
+std::thread::detach()
+例子：
+std::thread myThread(myFunction, 42);
+myThread.detach(); // 将 myThread 线程与当前线程分离
+
+// 4. 获取当前线程的唯一标识符。
+std::this_thread::get_id()
+返回: std::thread::id 类型的线程标识符
+例子：std::thread::id threadId = std::this_thread::get_id();
+
+// 5. 使当前线程休眠指定的时间
+std::this_thread::sleep_for()
+参数：sleep_duration 是一个 std::chrono::duration 类型的时间间隔
+例子：std::this_thread::sleep_for(std::chrono::seconds(5)); // 休眠 5 秒
+```
+#### 示例
+```c++
+#include <iostream>
+#include <thread>
+
+// 线程函数，打印消息
+void printMessage(const std::string& message) {
+    std::cout << "Thread ID: " << std::this_thread::get_id() << " Message: " << message << std::endl;
+}
+
+int main() {
+    // 创建两个线程并执行线程函数
+    std::thread thread1(printMessage, "Hello from Thread 1");
+    std::thread thread2(printMessage, "Hello from Thread 2");
+
+    // 等待线程执行完成
+    thread1.join();
+    thread2.join();
+
+    return 0;
+}
 ```
 
 # 2 功能模块
