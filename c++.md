@@ -1043,7 +1043,7 @@ myThread.detach(); // 将 myThread 线程与当前线程分离
 
 // 4. 获取当前线程的唯一标识符。
 std::this_thread::get_id()
-返回: std::thread::id 类型的线程标识符
+返回：std::thread::id 类型的线程标识符
 例子：std::thread::id threadId = std::this_thread::get_id();
 
 // 5. 使当前线程休眠指定的时间
