@@ -39,10 +39,16 @@
   - [1.14 与MySQL交互（MySQL C API）](#114-与mysql交互mysql-c-api)
     - [（1）MySQL C API](#1mysql-c-api)
     - [（2）连接和增删改查](#2连接和增删改查)
-  - [1.15](#115)
+  - [1.15 防止头文件重复包含](#115-防止头文件重复包含)
+    - [（1）介绍](#1介绍-3)
+    - [（2）示例](#2示例-3)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
   - [2.2 数据库连接池](#22-数据库连接池)
+    - [（1）介绍](#1介绍-4)
+    - [（2）示例](#2示例-4)
+      - [sql\_connection.h](#sql_connectionh)
+      - [sql\_connection.cpp](#sql_connectioncpp)
   - [2.3 多路复用](#23-多路复用)
 
 
@@ -894,9 +900,240 @@ int main() {
 g++ mytest.cpp -o mytest -lpthread -lmysqlclient && ./mytest
 ```
 
-## 1.15
+## 1.15 防止头文件重复包含
+### （1）介绍
+在 C++ 中，可以使用头文件保护（header guards）来防止头文件的多重包含。头文件保护使用预处理指令来检查宏是否已定义，并根据定义情况执行不同的代码。
+### （2）示例
+```c++
+#ifndef MYHEADER_H
+#define MYHEADER_H
+
+// 在这里写下你的头文件内容
+
+#endif
+
+当你在其他源文件中第一次包含 myheader.h 时，MYHEADER_H 宏将被定义并且条件为真，因此头文件的内容将被包含在编译过程中。
+当其他源文件再次包含相同的头文件时，预处理器会检测到 MYHEADER_H 宏已经定义，因此条件为假，头文件的内容将被跳过，避免了多次包含同一个头文件的问题。
+这样做的好处是，无论你在多个源文件中多次包含该头文件，编译器只会处理一次头文件的内容，避免了重复定义和编译错误。
+```
 
 # 2 功能模块
 ## 2.1 线程池
+
 ## 2.2 数据库连接池
+### （1）介绍
+    数据库连接池是一个管理数据库连接的软件组件或模块，它允许应用程序在需要时从预先创建的一组数据库连接中获取连接，并在使用完毕后将其返回给连接池，
+    而不是频繁地创建和销毁数据库连接。连接池的目的是提高数据库访问的性能和效率。
+### （2）示例
+#### sql_connection.h
+```c++
+#ifndef _CONNECTION_POOL_
+#define _CONNECTION_POOL_
+
+#include <stdio.h>
+#include <list>
+#include <mysql/mysql.h>
+#include <error.h>
+#include <string.h>
+#include <iostream>
+#include <string>
+#include "../lock/locker.h"
+#include "../log/log.h"
+
+using namespace std;
+
+class connection_pool
+{
+public:
+	MYSQL *GetConnection();				 //获取数据库连接
+	bool ReleaseConnection(MYSQL *conn); //释放连接
+	int GetFreeConn();					 //获取连接
+	void DestroyPool();					 //销毁所有连接
+
+	//单例模式
+	static connection_pool *GetInstance();
+
+	void init(string url, string User, string PassWord, string DataBaseName, int Port, int MaxConn, int close_log); 
+
+private:
+	connection_pool();
+	~connection_pool();
+
+	int m_MaxConn;  //最大连接数
+	int m_CurConn;  //当前已使用的连接数
+	int m_FreeConn; //当前空闲的连接数
+	locker lock;
+	list<MYSQL *> connList; //连接池
+	sem reserve;
+
+public:
+	string m_url;			//主机地址
+	string m_Port;		 	//数据库端口号
+	string m_User;		 	//登陆数据库用户名
+	string m_PassWord;	 	//登陆数据库密码
+	string m_DatabaseName; 	//使用数据库名
+	int m_close_log;		//日志开关
+};
+
+class connectionRAII
+{
+public:
+	connectionRAII(MYSQL **con, connection_pool *connPool);
+	~connectionRAII();	
+	
+private:
+	MYSQL *conRAII;
+	connection_pool *poolRAII;
+};
+
+#endif
+```
+#### sql_connection.cpp
+```c++
+#include <mysql/mysql.h>
+#include <stdio.h>
+#include <string>
+#include <string.h>
+#include <stdlib.h>
+#include <list>
+#include <pthread.h>
+#include <iostream>
+#include "sql_connection_pool.h"
+
+using namespace std;
+
+connection_pool::connection_pool()
+{
+	m_CurConn = 0;
+	m_FreeConn = 0;
+}
+
+connection_pool *connection_pool::GetInstance()
+{
+	static connection_pool connPool;
+	return &connPool;
+}
+
+// 构造初始化：连接数据库，创建一定数量的连接，并初始化信号量
+void connection_pool::init(string url, string User, string PassWord, string DBName, int Port, int MaxConn, int close_log)
+{
+	m_url = url;
+	m_Port = Port;
+	m_User = User;
+	m_PassWord = PassWord;
+	m_DatabaseName = DBName;
+	m_close_log = close_log;
+
+	for (int i = 0; i < MaxConn; i++)
+	{
+		MYSQL *con = NULL;
+		con = mysql_init(con);
+
+		if (con == NULL)
+		{
+			LOG_ERROR("MySQL Error");
+			exit(1);
+		}
+		con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
+
+		if (con == NULL)
+		{
+			LOG_ERROR("MySQL Error");
+			exit(1);
+		}
+		connList.push_back(con);
+		++m_FreeConn;
+	}
+
+	reserve = sem(m_FreeConn);
+
+	m_MaxConn = m_FreeConn;
+}
+
+
+// 当有请求时，从数据库连接池中返回一个可用连接，更新使用和空闲连接数
+MYSQL *connection_pool::GetConnection()
+{
+	MYSQL *con = NULL;
+
+	if (0 == connList.size())
+		return NULL;
+
+	reserve.wait();
+	
+	lock.lock();
+
+	con = connList.front();
+	connList.pop_front();
+
+	--m_FreeConn;
+	++m_CurConn;
+
+	lock.unlock();
+	return con;
+}
+
+// 释放当前使用的连接
+bool connection_pool::ReleaseConnection(MYSQL *con)
+{
+	if (con == NULL)
+		return false;
+
+	lock.lock();
+
+	connList.push_back(con);
+	++m_FreeConn;
+	--m_CurConn;
+
+	lock.unlock();
+
+	reserve.post();
+	return true;
+}
+
+// 销毁数据库连接池
+void connection_pool::DestroyPool()
+{
+
+	lock.lock();
+	if (connList.size() > 0)
+	{
+		list<MYSQL *>::iterator it;
+		for (it = connList.begin(); it != connList.end(); ++it)
+		{
+			MYSQL *con = *it;
+			mysql_close(con);
+		}
+		m_CurConn = 0;
+		m_FreeConn = 0;
+		connList.clear();
+	}
+
+	lock.unlock();
+}
+
+// 当前空闲的连接数
+int connection_pool::GetFreeConn()
+{
+	return this->m_FreeConn;
+}
+
+connection_pool::~connection_pool()
+{
+	DestroyPool();
+}
+
+// 资源获取即初始化
+connectionRAII::connectionRAII(MYSQL **SQL, connection_pool *connPool){
+	*SQL = connPool->GetConnection();
+	
+	conRAII = *SQL;
+	poolRAII = connPool;
+}
+
+connectionRAII::~connectionRAII(){
+	poolRAII->ReleaseConnection(conRAII);
+}
+```
+
 ## 2.3 多路复用
