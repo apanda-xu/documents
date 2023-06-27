@@ -935,40 +935,37 @@ g++ mytest.cpp -o mytest -lpthread -lmysqlclient && ./mytest
 // 1. 创建一个新的线程
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void*), void *arg)
 参数：
-thread：指向 pthread_t 类型的变量，用于存储新线程的标识符
-attr：指向 pthread_attr_t 类型的变量，用于设置线程的属性，通常使用 NULL 以使用默认属性
-start_routine：指向线程函数的指针，该函数接受一个 void* 类型的参数并返回一个 void* 类型的值
-arg：传递给线程函数的参数。
-返回值：若成功创建线程，则返回 0；否则返回一个非零错误码。
+    thread：指向 pthread_t 类型的变量，用于存储新线程的标识符
+    attr：指向 pthread_attr_t 类型的变量，用于设置线程的属性，通常使用 NULL 以使用默认属性
+    start_routine：指向线程函数的指针，该函数接受一个 void* 类型的参数并返回一个 void* 类型的值
+    arg：传递给线程函数的参数。
+返回：若成功创建线程，则返回 0；否则返回一个非零错误码。
 
 // 2. 终止当前线程，并返回一个指向 value_ptr 的指针作为线程的退出状态
 void pthread_exit(void *value_ptr)
-参数：
-value_ptr 是一个指针，用于传递线程的退出状态
+参数：value_ptr 是一个指针，用于传递线程的退出状态
 注意：调用 pthread_exit() 将立即终止线程的执行，不会等待其他线程完成
 
 // 3. 等待指定的线程结束，并获取其退出状态
 int pthread_join(pthread_t thread, void **value_ptr)
 参数：
-thread：要等待的线程的标识符
-value_ptr：指向指针的指针，用于接收线程的退出状态
-返回值：若成功等待线程并获取退出状态，则返回 0；否则返回一个非零错误码
+    thread：要等待的线程的标识符
+    value_ptr：指向指针的指针，用于接收线程的退出状态
+返回：若成功等待线程并获取退出状态，则返回 0；否则返回一个非零错误码
 
 // 4. 请求取消指定的线程
 int pthread_cancel(pthread_t thread)
-参数：
-thread 是要取消的线程的标识符
-返回值：若成功发送取消请求，则返回 0；否则返回一个非零错误码
+参数：thread 是要取消的线程的标识符
+返回：若成功发送取消请求，则返回 0；否则返回一个非零错误码
 
 // 5. 将指定的线程标记为可分离的状态，使其在结束时自动释放资源
 int pthread_detach(pthread_t thread)
-参数：
-thread 是要标记为可分离的线程的标识符
-返回值：若成功将线程标记为可分离状态，则返回 0；否则返回一个非零错误码
+参数：thread 是要标记为可分离的线程的标识符
+返回：若成功将线程标记为可分离状态，则返回 0；否则返回一个非零错误码
 
 // 6. 返回调用线程的标识符
 pthread_t pthread_self(void)
-返回值：当前线程的标识符
+返回：当前线程的标识符
 
 ```
 
@@ -1021,25 +1018,25 @@ int main() {
 // 1. 创建一个新的线程，并执行指定的函数
 std::thread::thread()
 参数：
-f：要在新线程中执行的函数（可以是函数指针、函数对象、Lambda 表达式等）
-args：传递给函数的参数。
+    f：要在新线程中执行的函数（可以是函数指针、函数对象、Lambda 表达式等）
+    args：传递给函数的参数。
 例子：
-void myFunction(int arg) {
-    // 线程执行的函数体
-}
-std::thread myThread(myFunction, 42); // 创建一个新线程，执行 myFunction(42)
+    void myFunction(int arg) {
+        // 线程执行的函数体
+    }
+    std::thread myThread(myFunction, 42); // 创建一个新线程，执行 myFunction(42)
 
 // 2. 等待线程的执行完成
 std::thread::join()
 例子：
-std::thread myThread(myFunction, 42);
-myThread.join(); // 将 myThread 线程与当前线程分离
+    std::thread myThread(myFunction, 42);
+    myThread.join(); // 将 myThread 线程与当前线程分离
 
 // 3. 将线程与当前线程分离，使其成为独立执行的线程
 std::thread::detach()
 例子：
-std::thread myThread(myFunction, 42);
-myThread.detach(); // 将 myThread 线程与当前线程分离
+    std::thread myThread(myFunction, 42);
+    myThread.detach(); // 将 myThread 线程与当前线程分离
 
 // 4. 获取当前线程的唯一标识符。
 std::this_thread::get_id()
