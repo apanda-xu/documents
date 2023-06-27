@@ -35,9 +35,15 @@
     - [（1）介绍](#1介绍-2)
     - [（2）用法](#2用法)
     - [（3）示例](#3示例)
+  - [1.13 C++连接数据库的方法](#113-c连接数据库的方法)
+  - [1.14 与mysql交互（MySQL Connector/C++）](#114-与mysql交互mysql-connectorc)
+    - [（1）MySQL C API](#1mysql-c-api)
+    - [（2）连接和增删改查](#2连接和增删改查)
+  - [1.15](#115)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
-  - [2.2 多路复用](#22-多路复用)
+  - [2.2 数据库连接池](#22-数据库连接池)
+  - [2.3 多路复用](#23-多路复用)
 
 
 
@@ -46,14 +52,14 @@
 ### （1）介绍
     <exception>是一个标准C++库头文件，包含了异常处理相关的类和函数。在C++程序中，异常处理是一种处理错误的机制，当程序出现错误时，可以抛出一个异常，并在适当的地方捕获和处理这个异常。下面是一些常用的异常处理类和函数：
 
-    (1) std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
-    (2) std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
-    (3) std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
-    (4) std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
-    (5) try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
-    (6) throw：抛出异常语句。使用throw语句可以抛出一个异常。
-    (7) catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
-    (8) std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
+    1. std::exception：标准异常类。所有标准异常类都继承自这个类，用于表示通用的异常错误。
+    2. std::runtime_error：运行时异常类。继承自std::exception，用于表示运行时错误。
+    3. std::logic_error：逻辑错误异常类。继承自std::exception，用于表示逻辑错误。
+    4. std::bad_alloc：内存分配异常类。继承自std::exception，用于表示内存分配失败。
+    5. try：异常处理语句块。使用try语句块可以标识可能会抛出异常的代码块。
+    6. throw：抛出异常语句。使用throw语句可以抛出一个异常。
+    7. catch：异常捕获语句块。使用catch语句块可以捕获并处理抛出的异常。
+    8. std::terminate：异常终止函数。如果程序中没有捕获到抛出的异常，会调用这个函数终止程序。
 
     使用异常处理可以让程序更加健壮，避免出现未处理的错误导致程序崩溃。需要注意的是，在使用异常处理时需要特别注意异常的类型和处理方式，避免出现不必要的异常和异常处理不当导致的问题。
 ### （2）示例
@@ -760,6 +766,137 @@ while(!ready) {
     cv.wait(lock);                         // 线程被唤醒时检查ready, 如果为false，则继续阻塞
 }
 ```
+
+## 1.13 C++连接数据库的方法
+    1. MySQL C API
+   
+    2. MySQL Connector/C++：这是MySQL官方提供的C++连接器库，也称为MySQL Connector/C++。它是使用MySQL C API构建的面向C++的API，提供了连接、执行SQL查询、处理结果等功能。你可以使用MySQL Connector/C++库来连接和操作MySQL数据库。
+
+    3. ORM（对象关系映射）库：ORM库是一种将对象和数据库之间进行映射的工具，它提供了高级的数据库操作接口，使得在C++中连接和操作数据库更加方便。一些流行的C++ ORM库包括MySQL++、ODB、cppdb等。
+
+    4. ODBC（Open Database Connectivity）：ODBC是一种开放标准的数据库访问接口，它提供了与多种数据库系统进行通信的能力。通过使用ODBC驱动程序，你可以在C++中使用ODBC API来连接和操作MySQL数据库。
+
+    5. 第三方库和框架：除了上述提到的方式，还有许多第三方库和框架可用于连接MySQL数据库。例如，Boost提供了一些与数据库交互的组件，如Boost.Asio和Boost.Beast；Poco库提供了易于使用的数据库接口；Qt框架具有Qt SQL模块等
+
+## 1.14 与mysql交互（MySQL Connector/C++）
+### （1）MySQL C API
+    1. 连接管理函数：
+    mysql_init：初始化MySQL对象。
+    mysql_real_connect：连接到MySQL服务器。
+    mysql_close：关闭与MySQL服务器的连接。
+
+    2. 执行SQL语句的函数：
+    mysql_query：执行SQL查询。
+    mysql_real_query：执行SQL查询（支持多条SQL语句）。
+    mysql_store_result：获取查询结果。
+    mysql_use_result：逐行获取查询结果。
+    mysql_fetch_row：获取查询结果的下一行数据。
+    mysql_free_result：释放查询结果内存。
+    
+    3. 事务处理函数：
+    mysql_autocommit：设置是否自动提交事务。
+    mysql_commit：提交当前事务。
+    mysql_rollback：回滚当前事务。
+    
+    4. 数据操作函数：
+    mysql_real_escape_string：对字符串进行转义，防止SQL注入。
+    mysql_insert_id：获取上一次插入操作生成的自增ID。
+    mysql_affected_rows：获取上一次操作受影响的行数。
+    
+    5. 错误处理函数：
+    mysql_errno：获取最近一次MySQL函数调用的错误代码。
+    mysql_error：获取最近一次MySQL函数调用的错误描述。
+
+### （2）连接和增删改查
+```c++
+// mytest.cpp
+
+#include <mysql/mysql.h>
+#include <iostream>
+#include <string>
+
+// 3. 查询数据
+void select(MYSQL *conn) {
+    if (mysql_query(conn, "select * from user") != 0) {
+        std::cout << "failed to fetch data: " << mysql_error(conn) << std::endl;
+    } else {
+        MYSQL_RES *result = mysql_store_result(conn);
+        if (result == NULL) {
+            std::cout << "failed to get result set: " << mysql_error(conn) << std::endl;
+        } else {
+            MYSQL_ROW row;
+            std::cout << "name\tpasswd" << std::endl;
+            while ((row = mysql_fetch_row(result)) != NULL) {
+                std::cout << row[0] << "\t" << row[1] << std::endl;
+            }
+            mysql_free_result(result);
+        }
+    }
+}
+
+int main() {
+    std::string localhost = "127.0.0.1";
+    std::string username  = "root";
+    std::string password  = "258088";
+    std::string database = "yourdb";
+
+    // 1. 初始化
+    MYSQL *conn = mysql_init(NULL);
+    if (conn == NULL) {
+        std::cout << "failed to initialize" << std::endl;
+        return 1;
+    }
+
+    // 2. 连接数据库
+    if (mysql_real_connect(conn, localhost.c_str(), username.c_str(), password.c_str(), database.c_str(), 0, NULL, 0) == NULL) {
+        std::cout << "failed to connect: " << mysql_error(conn) << std::endl;
+        mysql_close(conn);
+        return 1;
+    }
+
+    // 3. 查询数据
+    select(conn);
+
+    // 4. 插入数据
+    if (mysql_query(conn, "insert into user (username, passwd) values ('test1', '20')") != 0) {
+        std::cout << "failed to insert data: " << mysql_error(conn) << std::endl;
+    } else {
+        std::cout << "inserted successfully" << std::endl;
+    }
+    
+    select(conn);
+
+    // 5. 更新数据
+    if (mysql_query(conn, "update user set passwd = '123456' where username = 'test1'") != 0) {
+        std::cout << "failed to update data: " << mysql_error(conn) << std::endl;
+    } else {
+        std::cout << "updated successfully" << std::endl;
+    }
+
+    select(conn);
+
+    // 6. 删除数据
+    if (mysql_query(conn, "delete from user where username = 'test1'") != 0) {
+        std::cout << "failed to delete data: " << mysql_error(conn) << std::endl;
+    } else {
+        std::cout << "data deleted successfully" << std::endl;
+    }
+
+    select(conn);
+
+    // 7. 关闭连接
+    mysql_close(conn);
+    return 0;
+}
+```
+```bash
+# 编译时需要链接库
+g++ mytest.cpp -o mytest -lpthread -lmysqlclient && ./mytest
+```
+
+## 1.15
+
 # 2 功能模块
 ## 2.1 线程池
-## 2.2 多路复用
+## 2.2 数据库连接池
+## 2.3 多路复用
