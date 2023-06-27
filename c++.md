@@ -50,7 +50,7 @@
       - [示例2 (webserver)：](#示例2-webserver)
   - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-5)
-    - [（2）示例](#2示例-5)
+    - [（2）示例 (webserver)](#2示例-webserver)
       - [sql\_connection.h](#sql_connectionh)
       - [sql\_connection.cpp](#sql_connectioncpp)
   - [2.3 多路复用](#23-多路复用)
@@ -1243,7 +1243,7 @@ void threadpool<T>::run()
 ### （1）介绍
     数据库连接池是一个管理数据库连接的软件组件或模块，它允许应用程序在需要时从预先创建的一组数据库连接中获取连接，并在使用完毕后将其返回给连接池，
     而不是频繁地创建和销毁数据库连接。连接池的目的是提高数据库访问的性能和效率。
-### （2）示例
+### （2）示例 (webserver)
 #### sql_connection.h
 ```c++
 #ifndef _CONNECTION_POOL_
