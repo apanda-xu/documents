@@ -49,6 +49,8 @@
     - [（2）C++](#2c)
       - [用法](#用法-3)
       - [示例](#示例-2)
+  - [1.17 C++中类的全局/局部静态变量的初始化](#117-c中类的全局局部静态变量的初始化)
+  - [1.18 std::call\_once](#118-stdcall_once)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
     - [（1）介绍](#1介绍-3)
@@ -143,7 +145,7 @@ std::this_thread::sleep_for(std::chrono::microseconds(500));    // 微秒
 ```c++
 class Singleton {
 private:
-    static Singleton instance;  // 类内声明，类外初始化
+    static Singleton instance;  // 类内声明，类外定义对象
     // 私有构造函数
     Singleton() {}
 
@@ -1085,6 +1087,9 @@ int main() {
     return 0;
 }
 ```
+
+## 1.17 C++中类的全局/局部静态变量的初始化
+## 1.18 std::call_once
 
 # 2 功能模块
 ## 2.1 线程池
