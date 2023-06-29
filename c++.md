@@ -65,6 +65,7 @@
     - [（2）示例](#2示例-3)
       - [示例1](#示例1)
       - [示例2 (webserver)：](#示例2-webserver)
+      - [示例3（template）](#示例3template)
   - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-4)
     - [（2）示例 (webserver)](#2示例-webserver)
@@ -1426,6 +1427,127 @@ void threadpool<T>::run()
     }
 }
 #endif
+```
+
+#### 示例3（template）
+```c++
+// mypool.h
+
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <vector>
+#include <queue>
+#include <functional>
+#include <exception>
+
+using ThreadTask = std::function<void()>;
+
+template<class T>
+class threadpool
+{
+private:
+    std::vector<std::thread> thread_pool;   // 线程池
+    std::queue<T> task_queue;               // 任务队列
+    std::condition_variable cv;             // 条件变量
+    std::mutex task_queue_mtx;              // 互斥量
+    int max_tasks;                          // 最大任务数量
+    int max_threads;                        // 最大线程数量
+    bool is_runing;                         // 线程池状态
+    
+public:
+    threadpool(int max_threads, int max_tasks);
+    ~threadpool(); 
+    void init();                            // 初始化线程池
+    bool add_task(T task);                  // 添加任务
+    static void worker(threadpool *pool);   // 工作线程
+
+};
+
+// 构造函数
+template<class T>
+threadpool<T>::threadpool(int max_threads, int max_tasks) {
+    this->max_threads = max_threads > 0 ? max_threads:1;
+    this->max_tasks = max_tasks > 0 ? max_tasks:1;
+}
+
+// 析构函数
+template<class T>
+threadpool<T>::~threadpool() {
+    is_runing = false;
+    for(auto &t:thread_pool) {
+        t.join();
+    }
+    thread_pool.clear();
+    std::cout << "完成析构" << std::endl;
+}
+
+// 初始化线程池：预先创建一些线程
+template<class T>
+void threadpool<T>::init() {
+    is_runing = true;
+    for(int i = 0; i < max_threads; i++) {
+        thread_pool.push_back(std::thread(worker, this));
+        std::cout << "thread " << i << " is created" << std::endl;
+    }
+}
+
+// 添加任务：向任务队列中添加一个任务，并唤醒一个线程
+template<class T>
+bool threadpool<T>::add_task(T task) {
+    if(task_queue.size() >= max_tasks) {
+        std::cout << "Error:reach the maximum number of tasks" << std::endl;
+        throw std::exception();
+    }
+    std::unique_lock<std::mutex> lock(task_queue_mtx);
+    task_queue.push(task);
+    cv.notify_one();
+    return true;
+}
+
+// 工作线程：循环从任务队列中取一个任务并运行；如果没有任务或者线程，则阻塞
+template<class T> 
+void threadpool<T>::worker(threadpool *pool) {
+    if(pool == NULL) {
+        std::cout << "poll is NULL" << std::endl;
+        throw std::exception();
+    }
+    while(pool->is_runing || !pool->task_queue.empty()) {
+        ThreadTask task;
+        {
+            std::unique_lock<std::mutex> lock(pool->task_queue_mtx);        // 获取锁
+            pool->cv.wait(lock, [&](){return !pool->task_queue.empty();});  // 若请求队列为空，则线程阻塞，释放锁
+            task = std::move(pool->task_queue.front());                     // 队头取出一个任务
+            pool->task_queue.pop();                                         // 出队   
+        }
+        task();
+    }
+}
+```
+```c++
+// test.cpp
+
+#include <iostream>
+#include <functional>
+#include "mypool.h"
+
+void fun(int msg)
+{
+    std::cout << "task " << msg << std::endl;
+}
+
+int main()
+{
+    threadpool<std::function<void()>> pool(8, 30);
+    pool.init();
+
+    // 创造任务
+    for (int i = 0; i < 30; i++)
+    {
+        pool.add_task(std::bind(fun, i));
+    }
+}
 ```
 ## 2.2 数据库连接池
 ### （1）介绍
