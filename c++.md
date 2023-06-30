@@ -65,7 +65,7 @@
     - [（2）示例](#2示例-3)
       - [示例1](#示例1)
       - [示例2 (webserver)：](#示例2-webserver)
-      - [示例3（template）](#示例3template)
+      - [示例3 (template)](#示例3-template)
   - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-4)
     - [（2）示例 (webserver)](#2示例-webserver)
@@ -1429,7 +1429,7 @@ void threadpool<T>::run()
 #endif
 ```
 
-#### 示例3（template）
+#### 示例3 (template)
 ```c++
 // mypool.h
 
