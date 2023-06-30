@@ -1470,14 +1470,16 @@ template<class T>
 threadpool<T>::threadpool(int max_threads, int max_tasks) {
     this->max_threads = max_threads > 0 ? max_threads:1;
     this->max_tasks = max_tasks > 0 ? max_tasks:1;
+    is_runing = false;
 }
 
 // 析构函数
 template<class T>
 threadpool<T>::~threadpool() {
-    is_runing = false;
-    for(auto &t:thread_pool) {
-        t.join();
+    is_runing = false;                      // 设置线程池状态
+    cv.notify_all();                        // 唤醒所有线程
+    for(auto &t:thread_pool) {  
+        t.join();                           // 等待所有线程运行完所有任务
     }
     thread_pool.clear();
     std::cout << "完成析构" << std::endl;
@@ -1486,8 +1488,9 @@ threadpool<T>::~threadpool() {
 // 初始化线程池：预先创建一些线程
 template<class T>
 void threadpool<T>::init() {
-    is_runing = true;
-    for(int i = 0; i < max_threads; i++) {
+    if(is_runing) return;                   // 线程池已经初始化，则返回，防止重复创建线程
+    is_runing = true;                       // 设置线程池状态
+    for(int i = 0; i < max_threads; i++) {  // 创建一定数量的线程
         thread_pool.push_back(std::thread(worker, this));
         std::cout << "thread " << i << " is created" << std::endl;
     }
@@ -1496,32 +1499,32 @@ void threadpool<T>::init() {
 // 添加任务：向任务队列中添加一个任务，并唤醒一个线程
 template<class T>
 bool threadpool<T>::add_task(T task) {
-    if(task_queue.size() >= max_tasks) {
+    std::unique_lock<std::mutex> lock(task_queue_mtx);  // 获取锁
+    if(task_queue.size() >= max_tasks) {                // 判断当前队列中的任务数量是否达到最大值
         std::cout << "Error:reach the maximum number of tasks" << std::endl;
         throw std::exception();
     }
-    std::unique_lock<std::mutex> lock(task_queue_mtx);
     task_queue.push(task);
-    cv.notify_one();
+    cv.notify_one();                                    // 唤醒一个线程
     return true;
 }
 
-// 工作线程：循环从任务队列中取一个任务并运行；如果没有任务或者线程，则阻塞
+// 工作线程：循环从任务队列中取一个任务并运行
 template<class T> 
 void threadpool<T>::worker(threadpool *pool) {
     if(pool == NULL) {
         std::cout << "poll is NULL" << std::endl;
         throw std::exception();
     }
-    while(pool->is_runing || !pool->task_queue.empty()) {
+    while(pool->is_runing || !pool->task_queue.empty()) {                   // 线程池还在运行或者任务队列不为空，则线程进入循环
         ThreadTask task;
         {
             std::unique_lock<std::mutex> lock(pool->task_queue_mtx);        // 获取锁
             pool->cv.wait(lock, [&](){return !pool->task_queue.empty();});  // 若请求队列为空，则线程阻塞，释放锁
             task = std::move(pool->task_queue.front());                     // 队头取出一个任务
             pool->task_queue.pop();                                         // 出队   
-        }
-        task();
+        }                                                                   // 超出作用域自动释放锁
+        task();                                                             // 执行任务
     }
 }
 ```
@@ -1539,11 +1542,11 @@ void fun(int msg)
 
 int main()
 {
-    threadpool<std::function<void()>> pool(8, 30);
+    threadpool<std::function<void()>> pool(8, 100);
     pool.init();
 
     // 创造任务
-    for (int i = 0; i < 30; i++)
+    for (int i = 0; i < 100; i++)
     {
         pool.add_task(std::bind(fun, i));
     }
