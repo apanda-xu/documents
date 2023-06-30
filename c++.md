@@ -67,7 +67,7 @@
       - [示例1](#示例1)
       - [示例2 (webserver)](#示例2-webserver)
       - [示例3 (template) static](#示例3-template-static)
-      - [示例4 (template) non\_static](#示例4-template-non_static)
+      - [示例4 (template) non-static](#示例4-template-non-static)
   - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-4)
     - [（2）示例 (webserver)](#2示例-webserver)
@@ -1556,8 +1556,9 @@ int main()
 }
 ```
 
-#### 示例4 (template) non_static
+#### 示例4 (template) non-static
 ```c++
+// mypool_non_static.h
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -1650,10 +1651,10 @@ void threadpool<T>::worker() {
 }
 ```
 ```c++
-#include<iostream>
-#include<functional>
-// #include"mypool.h"
-#include"mypool_non_static.h"
+#include <iostream>
+#include <functional>
+// #include "mypool.h"
+#include "mypool_non_static.h"
 
 void fun(int msg)
 {
