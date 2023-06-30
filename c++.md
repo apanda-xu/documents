@@ -59,13 +59,15 @@
     - [（1）std::bind](#1stdbind)
     - [（2）和std::function配合使用](#2和stdfunction配合使用)
   - [1.22 C++中的别名](#122-c中的别名)
+  - [1.23 C++中类的静态函数的声明和定义](#123-c中类的静态函数的声明和定义)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
     - [（1）介绍](#1介绍-3)
     - [（2）示例](#2示例-3)
       - [示例1](#示例1)
-      - [示例2 (webserver)：](#示例2-webserver)
-      - [示例3 (template)](#示例3-template)
+      - [示例2 (webserver)](#示例2-webserver)
+      - [示例3 (template) static](#示例3-template-static)
+      - [示例4 (template) non\_static](#示例4-template-non_static)
   - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-4)
     - [（2）示例 (webserver)](#2示例-webserver)
@@ -1108,6 +1110,7 @@ int main() {
 ### （2）和std::function配合使用
 
 ## 1.22 C++中的别名
+## 1.23 C++中类的静态函数的声明和定义
 
 
 # 2 功能模块
@@ -1273,7 +1276,7 @@ int main()
     return 0;
 }
 ```
-#### 示例2 (webserver)：
+#### 示例2 (webserver)
 ```c++
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
@@ -1429,7 +1432,7 @@ void threadpool<T>::run()
 #endif
 ```
 
-#### 示例3 (template)
+#### 示例3 (template) static
 ```c++
 // mypool.h
 
@@ -1534,6 +1537,123 @@ void threadpool<T>::worker(threadpool *pool) {
 #include <iostream>
 #include <functional>
 #include "mypool.h"
+
+void fun(int msg)
+{
+    std::cout << "task " << msg << std::endl;
+}
+
+int main()
+{
+    threadpool<std::function<void()>> pool(8, 100);
+    pool.init();
+
+    // 创造任务
+    for (int i = 0; i < 100; i++)
+    {
+        pool.add_task(std::bind(fun, i));
+    }
+}
+```
+
+#### 示例4 (template) non_static
+```c++
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <vector>
+#include <queue>
+#include <functional>
+#include <exception>
+
+using ThreadTask = std::function<void()>;
+
+template<class T>
+class threadpool
+{
+private:
+    std::vector<std::thread> thread_pool;   // 线程池
+    std::queue<T> task_queue;               // 任务队列
+    std::condition_variable cv;             // 条件变量
+    std::mutex task_queue_mtx;              // 互斥量
+    int max_tasks;                          // 最大任务数量
+    int max_threads;                        // 最大线程数量
+    bool is_runing;                         // 线程池状态
+    
+public:
+    threadpool(int max_threads, int max_tasks);
+    ~threadpool(); 
+    void init();                            // 初始化线程池
+    bool add_task(T task);                  // 添加任务
+    void worker();                          // 工作线程
+
+};
+
+// 构造函数
+template<class T>
+threadpool<T>::threadpool(int max_threads, int max_tasks) {
+    this->max_threads = max_threads > 0 ? max_threads:1;
+    this->max_tasks = max_tasks > 0 ? max_tasks:1;
+    is_runing = false;
+}
+
+// 析构函数
+template<class T>
+threadpool<T>::~threadpool() {
+    is_runing = false;                      // 设置线程池状态
+    cv.notify_all();                        // 唤醒所有线程
+    for(auto &t:thread_pool) {  
+        t.join();                           // 等待所有线程运行完所有任务
+    }
+    thread_pool.clear();
+    std::cout << "完成析构" << std::endl;
+}
+
+// 初始化线程池：预先创建一些线程
+template<class T>
+void threadpool<T>::init() {
+    if(is_runing) return;                   // 线程池已经初始化，则返回，防止重复创建线程
+    is_runing = true;                       // 设置线程池状态
+    for(int i = 0; i < max_threads; i++) {  // 创建一定数量的线程
+        thread_pool.push_back(std::thread(&threadpool::worker, this));
+        std::cout << "thread " << i << " is created" << std::endl;
+    }
+}
+
+// 添加任务：向任务队列中添加一个任务，并唤醒一个线程
+template<class T>
+bool threadpool<T>::add_task(T task) {
+    std::unique_lock<std::mutex> lock(task_queue_mtx);  // 获取锁
+    if(task_queue.size() >= max_tasks) {                // 判断当前队列中的任务数量是否达到最大值
+        std::cout << "Error:reach the maximum number of tasks" << std::endl;
+        throw std::exception();
+    }
+    task_queue.push(task);
+    cv.notify_one();    // 唤醒一个线程
+    return true;
+}
+
+// 工作线程：循环从任务队列中取一个任务并运行
+template<class T> 
+void threadpool<T>::worker() {
+    while(is_runing || !task_queue.empty()) {                   // 线程池还在运行或者任务队列不为空，则线程进入循环
+        ThreadTask task;
+        {
+            std::unique_lock<std::mutex> lock(task_queue_mtx);  // 获取锁
+            cv.wait(lock, [&](){return !task_queue.empty();});  // 若请求队列为空，则线程阻塞，释放锁
+            task = std::move(task_queue.front());               // 队头取出一个任务
+            task_queue.pop();                                   // 出队   
+        }                                                       // 超出作用域自动释放锁
+        task();                                                 // 执行任务
+    }
+}
+```
+```c++
+#include<iostream>
+#include<functional>
+// #include"mypool.h"
+#include"mypool_non_static.h"
 
 void fun(int msg)
 {
