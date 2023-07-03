@@ -31,6 +31,7 @@
       - [介绍](#介绍)
       - [用法](#用法-1)
       - [示例](#示例)
+    - [（3）检查是否拥有锁](#3检查是否拥有锁)
   - [1.12 条件变量（C++）](#112-条件变量c)
     - [（1）介绍](#1介绍-1)
     - [（2）用法](#2用法)
@@ -68,8 +69,8 @@
     - [（2）示例](#2示例-3)
       - [示例1](#示例1)
       - [示例2 (webserver)](#示例2-webserver)
-      - [示例3 (template) static](#示例3-template-static)
-      - [示例4 (template) non-static](#示例4-template-non-static)
+      - [示例3 (template) static worker](#示例3-template-static-worker)
+      - [示例4 (template) non-static worker](#示例4-template-non-static-worker)
   - [2.2 数据库连接池](#22-数据库连接池)
     - [（1）介绍](#1介绍-4)
     - [（2）示例 (webserver)](#2示例-webserver)
@@ -318,6 +319,8 @@ private:
 ```
 ### （2）<semaphore.h>用法
 ```c++
+在使用信号量时，不需要获取锁。它使用计数器来跟踪可用资源的数量。
+
 // 1. sem_init函数
 int sem_init(sem_t *sem, int pshared, unsigned int value);
 
@@ -353,7 +356,6 @@ int sem_post(sem_t *sem);
 需要注意的是，sem_post函数也是原子操作，即在释放信号量的过程中，不会被其他线程或者进程打断。如果释放信号量失败，则会返回-1，并设置相应的错误码。
 这些函数是使用信号量的基本操作。在使用时，需要先通过sem_init函数初始化一个信号量，然后在需要同步的代码段中使用sem_wait和sem_post函数来获取和释放信号量。最后，使用sem_destroy函数来销毁信号量。
 ```
-
 
 ## 1.9 互斥锁（C）
 ### （1）示例（封装）
@@ -698,6 +700,7 @@ int main()
     1. 创建一个 std::mutex（互斥锁）对象。
     2. 在需要保护的临界区域内，创建一个 std::lock_guard 对象并传入互斥锁对象。
     3. 执行临界区域的代码。
+    4. 不能配合c++中的条件变量使用，因为wait函数需要无法接收lock_guard对象
     当 std::lock_guard 对象的作用域结束时，析构函数会被调用，自动解锁互斥锁。
 #### 示例
 ```c++
@@ -726,12 +729,40 @@ int main()
 
     return 0;
 }
-
 ```
+### （3）检查是否拥有锁
+    在C++中，可以使用std::mutex和std::lock_guard来实现互斥锁的加锁和解锁操作。要检查当前线程是否拥有互斥锁，可以使用std::mutex的std::mutex::try_lock()方法。
+```c++
+#include <iostream>
+#include <thread>
+#include <mutex>
 
+std::mutex mtx;
+
+void checkMutexOwnership() {
+    if (mtx.try_lock()) {
+        std::cout << "Thread owns the mutex." << std::endl;
+        mtx.unlock();
+    } else {
+        std::cout << "Thread does not own the mutex." << std::endl;
+    }
+}
+
+int main() {
+    std::thread t1(checkMutexOwnership);
+    
+    mtx.lock();
+    t1.join();
+    mtx.unlock();
+
+    return 0;
+}
+```
+    在checkMutexOwnership函数中，我们使用std::mutex::try_lock()方法来尝试获取互斥锁的所有权。如果当前线程成功获取了互斥锁，那么它将打印一条消息表示线程拥有互斥锁，并在完成操作后释放互斥锁。如果当前线程无法获取互斥锁，那么它将打印一条消息表示线程不拥有互斥锁。
 ## 1.12 条件变量（C++）
 ### （1）介绍
-    C++ 中的条件变量（std::condition_variable）用于线程之间的同步和通信。它允许一个线程等待另一个线程满足特定的条件，从而实现线程的协调和同步。
+    1. C++ 中的条件变量（std::condition_variable）用于线程之间的同步和通信。它允许一个线程等待另一个线程满足特定的条件，从而实现线程的协调和同步。
+    2. 条件变量在使用前一定要获取锁。
 ### （2）用法
 ```c++
 // 1. 等待条件满足
@@ -1436,7 +1467,7 @@ void threadpool<T>::run()
 #endif
 ```
 
-#### 示例3 (template) static
+#### 示例3 (template) static worker
 ```c++
 // mypool.h
 
@@ -1560,7 +1591,7 @@ int main()
 }
 ```
 
-#### 示例4 (template) non-static
+#### 示例4 (template) non-static worker
 ```c++
 // mypool_non_static.h
 #include <iostream>
