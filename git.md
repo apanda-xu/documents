@@ -20,6 +20,10 @@
   - [1.5 解决Github连接慢或者无法连接(通过修改hosts文件解决)](#15-解决github连接慢或者无法连接通过修改hosts文件解决)
   - [1.6 常用git命令](#16-常用git命令)
 - [2 进阶](#2-进阶)
+  - [2.1 工作区和暂存区](#21-工作区和暂存区)
+  - [2.2 git stash](#22-git-stash)
+  - [2.2 git reset](#22-git-reset)
+  - [2.3 git revert](#23-git-revert)
 
 # 1 初级（ubuntu20.04）
 ## 1.1 安装git
@@ -90,3 +94,7 @@
 <br>
 
 # 2 进阶
+## 2.1 工作区和暂存区
+## 2.2 git stash
+## 2.2 git reset
+## 2.3 git revert
