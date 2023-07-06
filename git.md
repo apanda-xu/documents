@@ -38,6 +38,10 @@
     - [（2）用法](#2用法-2)
   - [2.5 git log](#25-git-log)
   - [2.6 git status](#26-git-status)
+  - [2.7 git rm](#27-git-rm)
+    - [（1）介绍](#1介绍-3)
+    - [（2）用法](#2用法-3)
+    - [（3）示例](#3示例)
 
 # 1 初级（ubuntu20.04）
 ## 1.1 安装git
@@ -160,6 +164,23 @@ git有三个重要的概念，分别是工作区，暂存区，仓库
     git log --author=<author-name>  // 查看指定作者的提交历史
 ## 2.6 git status
     git status 命令用于查看当前代码仓库的状态。它会显示当前分支的状态以及工作区和暂存区的文件状态。
+## 2.7 git rm
+### （1）介绍
+    git rm 命令用于从 Git 仓库中移除文件。
+### （2）用法
+    git rm <file-path>              // 从工作区和仓库中同时删除文件 
+    git rm --cached <file-path>     // 仅从仓库中删除文件，保留在工作区中
+    git commit -m "Remove file"     // 在使用 git rm 命令后，记得要进行一次提交以将更改记录到 Git 仓库中
+### （3）示例
+    如果你希望从远程仓库中删除已经推送的文件，但保留在你的本地工作区中，可以按照以下步骤进行操作：
+    
+    1. git rm --cached <file-path>                          // 首先，使用 git rm 命令将文件从 Git 仓库中移除，并将其标记为待删除状态
+    2. git commit -m "Remove file from remote repository"   // 提交更改
+    3. git push origin <branch-name>                        // 推送更改到远程仓库
+   
+    通过执行以上步骤，你可以从远程仓库中删除文件，但仍然在你的本地工作区中保留该文件。其他团队成员在拉取更新时会将文件从远程仓库中删除。
+
+
 
 
 
