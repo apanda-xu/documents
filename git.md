@@ -10,8 +10,8 @@
     - [（2）将公钥id\_rsa.pub内容拷贝到github服务器](#2将公钥id_rsapub内容拷贝到github服务器)
   - [1.3 将本地项目上传到github（需完成1.2）](#13-将本地项目上传到github需完成12)
     - [（1）首次上传](#1首次上传)
-      - [创建远端仓库](#创建远端仓库)
-      - [初始化本地仓，将工作的变化添加到暂存区，创建提交，push到远端仓库](#初始化本地仓将工作的变化添加到暂存区创建提交push到远端仓库)
+      - [创建远程仓库](#创建远程仓库)
+      - [初始化本地仓，将工作的变化添加到暂存区，创建提交，push到远程仓库](#初始化本地仓将工作的变化添加到暂存区创建提交push到远程仓库)
     - [（2）后续上传](#2后续上传)
   - [1.4 git设置HTTP(S)代理（SHH协议无需设置）](#14-git设置https代理shh协议无需设置)
     - [（1）设置代理](#1设置代理)
@@ -70,13 +70,13 @@
 
 ## 1.3 将本地项目上传到github（需完成1.2）
 ### （1）首次上传
-#### 创建远端仓库
+#### 创建远程仓库
     使用github网页版，new一个新的仓库。仓库有两个地址，分别对应两种协议：
     1. SSH协议：  git@github.com:apanda-xu/documents.git
     2. HTTPS协议：https://github.com/apanda-xu/documents.git
     推荐使用SSH协议，更稳定；HTTP/HTTPS协议容易被墙，不稳定
     
-#### 初始化本地仓，将工作的变化添加到暂存区，创建提交，push到远端仓库
+#### 初始化本地仓，将工作的变化添加到暂存区，创建提交，push到远程仓库
     cd {workspace}                                                // 进入项目所在的文件夹
     git init                                                      // 初始化项目文件夹作为本地仓库
     touch README.md                                               // 新建一个文件
@@ -84,7 +84,7 @@
     git commit -m "first commit"                                  // 创建一个提交
     git branch -M main                                            // 修改当前分支名为main
     git remote add origin git@github.com:apanda-xu/documents.git  // 连接远程仓库, 推荐使用SSH协议地址
-    git push -u origin main                                       // push到远端仓库
+    git push -u origin main                                       // push到远程仓库
 ### （2）后续上传
     git pull    // 由于第一次push使用了-u参数，所以后续上传可以简单push                
     git push
