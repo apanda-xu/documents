@@ -64,6 +64,9 @@
   - [1.24 回调函数](#124-回调函数)
   - [1.25 可变参数列表](#125-可变参数列表)
   - [1.26 互斥锁和自旋锁](#126-互斥锁和自旋锁)
+  - [1.27 io输入](#127-io输入)
+    - [（1）接收一组未知数量的整形数据](#1接收一组未知数量的整形数据)
+    - [（2）接收多组未知数量的整形数据](#2接收多组未知数量的整形数据)
 - [2 功能模块](#2-功能模块)
   - [2.1 线程池](#21-线程池)
     - [（1）介绍](#1介绍-3)
@@ -1156,6 +1159,62 @@ int main() {
 ## 1.24 回调函数
 ## 1.25 可变参数列表
 ## 1.26 互斥锁和自旋锁
+## 1.27 io输入
+### （1）接收一组未知数量的整形数据
+```c++
+// 接收一行
+#include<iostream>
+#include<vector>
+#include<string>
+#include<sstream>
+using namespace std;
+
+int main() {
+    string s;
+    getline(cin, s);
+    istringstream iss(s);
+
+    vector<int> v;
+    int num;
+    while(iss >> num) {
+        v.push_back(num);
+    } 
+    for(int val:v) {
+        cout << val << " ";
+    }
+    return 0;
+}
+```
+### （2）接收多组未知数量的整形数据
+```c++
+#include<iostream>
+#include<vector>
+#include<string>
+#include<sstream>
+using namespace std;
+
+int main() {
+    string s;
+    vector<vector<int>> v;
+    int num;
+    while(getline(cin, s)) {
+        if(s.empty()) break;
+        istringstream iss(s);
+        vector<int> t;
+        while(iss >> num) {
+            t.push_back(num);
+        }
+        v.push_back(t);
+    }
+    for(auto myv:v) {
+        for(int val:myv) {
+            cout << val << " ";
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
 <br><br>
 
 # 2 功能模块
